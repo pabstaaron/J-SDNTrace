@@ -37,5 +37,5 @@ public interface INetwork {
 	 * @param outPort
 	 */
 	void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum);
+			int portNum, byte[] data);
 }

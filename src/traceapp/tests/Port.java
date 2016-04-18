@@ -39,7 +39,7 @@ public class Port implements INetNode, Comparable<Port>{
 	}
 
 	@Override
-	public void packetIn(Packet p) {
+	public void packetIn(Packet p, long dpid, int port) {
 		if(isEnabled)
 			parent.packetIn(p, this);
 	}
@@ -49,9 +49,19 @@ public class Port implements INetNode, Comparable<Port>{
 			return;
 		
 		if(plugged.right == this)
-			plugged.left.packetIn(p);
+			plugged.left.packetIn(p, parent.getDpid(), number);
 		else
-			plugged.right.packetIn(p);
+			plugged.right.packetIn(p, parent.getDpid(), number);
+	}
+	
+	public INetNode getPlugged(){
+		if(plugged == null)
+			return null;
+		
+		if(plugged.left == this)
+			return plugged.right;
+		else
+			return plugged.left;
 	}
 	
 	@Override

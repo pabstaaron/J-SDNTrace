@@ -90,8 +90,14 @@ public class DummySwitch implements Comparable<DummySwitch>{
 	}
 	
 	public Port getPort(int portNumber){
+		if(portNumber < 0)
+			return null;
 		int i = Collections.binarySearch(ports, new Port(portNumber, false, this));
 		return ports.get(i);
+	}
+	
+	public long getDpid(){
+		return dpid;
 	}
 	
 	public void packetIn(Packet p, Port in){

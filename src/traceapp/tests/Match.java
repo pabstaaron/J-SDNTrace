@@ -23,26 +23,26 @@ public class Match {
 	}
 	
 	/**
-	 * Determines if this packet is a match. Null values are assumed to be don't-cares.
+	 * Determines if this packet is a match. Default values are assumed to be don't-cares.
 	 * 
 	 * @param p
 	 * @param inPort
 	 * @return A value indicating whether or not the specified packet is a match.
 	 */
 	public boolean isMatch(Packet p, int inPort){
-		if((Integer)inPort != null && this.inPort != inPort){
+		if((Integer)inPort != null && this.inPort != inPort && this.inPort > 0){
 			return false;
 		}
 //		else if((Long)srcMac != null && srcMac != p.getSource()){
 //			return false;
 //		}
-		else if((Long)dstMac > 0 && dstMac != p.getDestination()){
+		else if((Long)dstMac > 0 && dstMac != p.getDestination() && dstMac > 0){
 			return false;
 		}
-		else if((Integer)ethType > 0 && ethType != p.getEtherType()){
+		else if((Integer)ethType > 0 && ethType != p.getEtherType() && ethType > 0){
 			return false;
 		}
-		else if(protocol != null && protocol != p.getProtocol()){
+		else if(protocol != null && protocol != p.getProtocol() && protocol != ""){
 			return false;
 		}
 		

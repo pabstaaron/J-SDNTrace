@@ -3,26 +3,39 @@ package traceapp.tests;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import traceapp.core.INetwork;
 import traceapp.core.Packet;
+import traceapp.core.TraceAppController;
 
 /**
  * Implements a mock network for testing purposes.
  * 
- * Keeps a mock flow table, defines ports, and generates mock traffic.
- * Provide
+ * This class serves the role of an OpenFlow controller in the test harness. As such, it has an
+ * ip address and a mac address. It connects to a switch in a UnitTest in the same manner as a host.
  * 
  * @author Aaron Pabst
  */
-public class DummyNetwork implements INetwork {
+public class DummyNetwork implements INetwork, INetNode {
 
 	private List<DummySwitch> switches;
 	private List<DummyHost> hosts;
+	private long ip, mac;
+	private Wire plugged;
+	private TraceAppController cont;
+	private final static int TRACE_REQUEST = 0x8820;
+	private String messages;
 	
-	public DummyNetwork(){
+	public DummyNetwork(long ip, long mac){
 		switches = new ArrayList<DummySwitch>();
 		hosts = new ArrayList<DummyHost>();
+		cont = new TraceAppController(this);
+		messages = "";
+	}
+	
+	public int size(){
+		return switches.size() + hosts.size();
 	}
 	
 	@Override
@@ -40,7 +53,7 @@ public class DummyNetwork implements INetwork {
 	
 	@Override
 	public void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum) {
+			int portNum, byte[] data) {
 		Collections.sort(switches);
 		int i = Collections.binarySearch(switches, new DummySwitch(dpid, 0, 0, 0));
 		if(i < 0)
@@ -48,7 +61,7 @@ public class DummyNetwork implements INetwork {
 		
 		DummySwitch sw = switches.get(i);
 		
-		sw.packetIn(new Packet(dstMac, dstIP, srcIP, srcMac, proto, i), sw.getPort(portNum));
+		sw.packetIn(new Packet(dstMac, dstIP, srcIP, srcMac, proto, i, data), sw.getPort(portNum));
 	}
 
 	/**
@@ -62,7 +75,20 @@ public class DummyNetwork implements INetwork {
 	public DummySwitch AddSwitch(long dpid, int numPorts, long mac, long ipV4){
 		DummySwitch sw = new DummySwitch(dpid, numPorts, mac, ipV4);
 		switches.add(sw);
+		cont.SwitchInfoReceived(dpid);
 		return sw;
+	}
+	
+	/**
+	 * Pull a random switch from the network.
+	 * 
+	 * @param seed
+	 * @return
+	 */
+	public DummySwitch randomSwitch(int seed){
+		Random rand = new Random(seed);
+		int i = rand.nextInt(switches.size());
+		return switches.get(i);
 	}
 	
 	/**
@@ -107,5 +133,38 @@ public class DummyNetwork implements INetwork {
 		return switches.get(i);
 	}
 
-	
+	@Override
+	public String getType() {
+		return "dummynetwork";
+	}
+
+	@Override
+	public void plug(Wire w) {
+		plugged = w;
+	}
+
+	@Override
+	public void packetIn(Packet p, long dpid, int port) {
+		if(p.getEtherType() == 8 && p.getDstIp() == mac){ // A ping request sent to this object
+			
+		}
+		else if(p.getEtherType() == TRACE_REQUEST){ // This is a trace packet
+			messages += "\nReceived trace packet";
+		}
+		
+		cont.PacketIn(p, dpid, port);
+	}
+
+	public String getMessages(){
+		return messages;
+	}
+
+	public int getControllerPort(long dpid) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	public int numSwitches() {
+		return switches.size();
+	}
 }

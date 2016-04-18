@@ -12,7 +12,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	private long mac;
 	private Wire plugged;
 	private String messages; // The equivalent of a console for messages to be dumped to.
-	private final int TRACE_TYPE = 0x8820;
+	private final static int TRACE_REQUEST = 0x8820;
 	
 	public DummyHost(long ip, long mac){
 		this.ip = ip;
@@ -29,7 +29,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	public void sendPingRequest(long dstIp){
 		messages += "\nSending ping request to " + dstIp + "...";
 		
-		Packet p = new Packet(0, dstIp, ip, mac, "tcp", 8);
+		Packet p = new Packet(0, dstIp, ip, mac, "tcp", 8, new byte[32]);
 		
 		if(plugged == null){ // There's nowhere for the packet to go
 			messages += "\nDestination unreachable";
@@ -37,21 +37,21 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 		}
 		
 		if(this == plugged.left)
-			plugged.right.packetIn(p);
+			plugged.right.packetIn(p, -1, -1);
 		else 
-			plugged.left.packetIn(p);
+			plugged.left.packetIn(p, -1, -1);
 	}
 	
 	private void sendPingReply(long srcIp){
-		Packet p = new Packet(0, srcIp, ip, mac, "tcp", 0);
+		Packet p = new Packet(0, srcIp, ip, mac, "tcp", 0, new byte[32]);
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return;
 		
 		if(this == plugged.left)
-			plugged.right.packetIn(p);
+			plugged.right.packetIn(p, -1, -1);
 		else 
-			plugged.left.packetIn(p);
+			plugged.left.packetIn(p, -1, -1);
 	}
 	
 	/**
@@ -62,20 +62,20 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	 * @return
 	 */
 	public Packet sendTrace(String protocol, long dstMac){
-		Packet p = new Packet(dstMac, -1, ip, mac, "tcp", TRACE_TYPE);
+		Packet p = new Packet(dstMac, -1, ip, mac, "tcp", TRACE_REQUEST, new byte[32]);
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return p;
 		
 		if(this == plugged.left)
-			plugged.right.packetIn(p);
+			plugged.right.packetIn(p, -1, -1);
 		else 
-			plugged.left.packetIn(p);
+			plugged.left.packetIn(p, -1, -1);
 		
 		return p;
 	}
 	
-	public void packetIn(Packet p)
+	public void packetIn(Packet p, long dpid, int port)
 	{
 		if(p.getSourceIp() == ip)
 			return;
@@ -86,8 +86,11 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 		else if(p.getEtherType() == 0){ // This packet is a ping reply
 			messages += "\nPing reply received from: " + p.getSourceIp();
 		}
-		else if(p.getEtherType() == 0x8820){ // This packet is a trace request
-			
+		else if(p.getEtherType() == 0x8820){ // This packet is a trace reply
+			messages += "\nReceived trace reply\n";
+			// TODO The data field of the packet will contain the trace results
+					// Not sure if its worth it to deserialize the data for testing
+			messages += p.getData();
 		}
 	}
 
@@ -113,5 +116,13 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	
 	public String getMessages(){
 		return messages;
+	}
+
+	public long getIp() {
+		return ip;
+	}
+
+	public long getMac() {
+		return mac;
 	}
 }

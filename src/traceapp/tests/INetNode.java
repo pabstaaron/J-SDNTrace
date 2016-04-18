@@ -11,5 +11,5 @@ public interface INetNode {
 	
 	public void plug(Wire w);
 	
-	public void packetIn(Packet p);
+	public void packetIn(Packet p, long dpid, int port);
 }
