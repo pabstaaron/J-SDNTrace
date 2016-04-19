@@ -15,27 +15,40 @@ public interface INetwork {
 	/**
 	 * Used to push a new flow out to the network
 	 * 
+	 * Action is expected to be a string the corresponds to a flow action.
+	 * 	"controller" - Send the packet to the controller
+	 *  "<integer>"- Send the packet out a specific port
+	 *   
 	 * @param dpid
 	 * @param inPort
 	 * @param dstAddress
-	 * @param actions
+	 * @param action
 	 * @param priority
 	 */
-	void AddFlow(long dpid, int inPort, long dstAddress, int ethType, int priority, int outPort, String proto);
+	void AddFlow(long dpid, int inPort, long dstAddress, int ethType, int priority, String action, String proto);
 	
 	/**
 	 * Used to send a packet out on the specified datapath
 	 * 
-	 * TODO: Need to pack more information about the destination. Make sure that the information
-	 * TODO: Being provided is universal across all controllers/hardware
-	 * 
 	 * Need source mac, destination mac, ip protocol, source IP, destination IP, TTL, and some data in
 	 * the form a a byte array.
+	 * 
+	 * It is expected that the data array will be serialized in the OF controller.
 	 * 
 	 * @param dpid
 	 * @param msg
 	 * @param outPort
 	 */
 	void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum, byte[] data);
+			int portNum, Object[] data);
+
+	/**
+	 * @return The port on any given switch the controller is connected to. Most OF controllers provide
+	 * 			something like this. 
+	 * 
+	 * TODO There is a specific action provided by OF to send a packet to the controller. We need to 
+	 * 		find a way to leverage that. We won't be able to get an integer that corresponds to the 
+	 * 		controller port in real life.
+	 */
+	int ControllerPort();
 }

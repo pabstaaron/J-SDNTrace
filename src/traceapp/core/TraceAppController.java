@@ -61,14 +61,25 @@ public class TraceAppController {
 		}
 		
 		// Push the Trace flow to the new switch
-			// TODO Need to know the port number that the controller is on
-		network.AddFlow(dpid, -1, -1, TRACE_PACKET, 1000, -1, null);
+		network.AddFlow(dpid, -1, -1, TRACE_PACKET, 1000, "controller", null);
 	}
+	
 	/**
 	 * Control the trace process according to the SDNTrace specification.
 	 */
-	private void HandleTrace(Packet p){
+	private void HandleTrace(Packet p, long dpid){
 		System.out.println("TraceApp received a trace request...");
+		
+		// If the destination is directly attached to the present switch, we're on the last hop
+		// If the destination is not directly attached to the present switch, append the hop info
+		// 	to the data field of the packet, send the packet along to 
+	    // 	the next hop as determined by this object's netMap.
+		// TODO: How do we determine if the destination is directly attached?
+		
+		// If it's time to send the reply, look up the requester in the netMap and send the response
+		// 	straight back
+		// TODO: Again we have a direct v. indirect attachment problem here.
+		
 	}
 	
 	/**
@@ -84,7 +95,9 @@ public class TraceAppController {
 		long mac = pkt.getSource();
 		
 		// Register the mac address and port if necessary.
-			// This may not create a complete map depending on how the underlying OpenFlow learns.
+			// TODO: This may not create a complete map depending on how the underlying OpenFlow learns.
+			// TODO: Should be building the netMap on port status changes, as that is a more robust
+			// 			method.
 		if(netMap.containsKey(pkt.getProtocol())){
 			HashMap<Long, HashMap<Long, Integer>> m = netMap.get(pkt.getProtocol());
 			if(netMap.containsKey(dpid)){
@@ -109,7 +122,7 @@ public class TraceAppController {
 		
 		
 		if(pkt.getEtherType() == TRACE_PACKET){
-			HandleTrace(pkt);
+			HandleTrace(pkt, dpid);
 		}
 	}
 }

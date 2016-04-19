@@ -77,4 +77,9 @@ public class Port implements INetNode, Comparable<Port>{
 	public int getNumber() {
 		return number;
 	}
+
+	public DummySwitch getParent() {
+		// TODO Auto-generated method stub
+		return parent;
+	}
 }

@@ -196,7 +196,7 @@ public class TraceAppTester {
 			h.plug(w);
 		}
 		
-		net.AddFlow(1, 1, -1, -1, 100, 4, "tcp");
+		net.AddFlow(1, 1, -1, -1, 100, "4", "tcp");
 		
 		h1.sendPingRequest(5);
 		
@@ -229,7 +229,7 @@ public class TraceAppTester {
 		Port p2 = s1.plug(3, w3);
 		w3.right = p2;
 		
-		net.AddFlow(2, -1, -1, 0x8820, 1000, p2.getNumber(), "");
+		net.AddFlow(2, -1, -1, 0x8820, 1000, Integer.toString(p2.getNumber()), "");
 		h1.sendTrace("tcp", 3);
 		Assert.assertEquals("\nReceived trace packet", net.getMessages());
 	}

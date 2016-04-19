@@ -22,7 +22,7 @@ public class DummyNetwork implements INetwork, INetNode {
 	private List<DummySwitch> switches;
 	private List<DummyHost> hosts;
 	private long ip, mac;
-	private Wire plugged;
+	private List<Wire> plugged;
 	private TraceAppController cont;
 	private final static int TRACE_REQUEST = 0x8820;
 	private String messages;
@@ -31,6 +31,7 @@ public class DummyNetwork implements INetwork, INetNode {
 		switches = new ArrayList<DummySwitch>();
 		hosts = new ArrayList<DummyHost>();
 		cont = new TraceAppController(this);
+		plugged = new ArrayList<Wire>();
 		messages = "";
 	}
 	
@@ -39,7 +40,7 @@ public class DummyNetwork implements INetwork, INetNode {
 	}
 	
 	@Override
-	public void AddFlow(long dpid, int inPort, long dstAddress, int ethType, int priority, int outPort, String proto) {
+	public void AddFlow(long dpid, int inPort, long dstAddress, int ethType, int priority, String action, String proto) {
 		Collections.sort(switches);
 		int i = Collections.binarySearch(switches, new DummySwitch(dpid, 0, 0, 0));
 		if(i < 0)
@@ -47,13 +48,31 @@ public class DummyNetwork implements INetwork, INetNode {
 		
 		DummySwitch sw = switches.get(i);
 		Match m = new Match(inPort, -1, dstAddress, ethType, proto);
-		sw.AddFlow(m, outPort, priority);
+		if(action == "controller"){
+			// Loop through all of the connections to this object until the switch is found
+			for(Wire w : plugged){
+				if(w.left == this){
+					if(((Port)w.right).getParent().getDpid() == dpid){ // Found it 
+						sw.AddFlow(m, ((Port)w.right).getNumber(), priority);
+						return;
+					}
+				}
+				else{
+					if(((Port)w.left).getParent().getDpid() == dpid){ // Found it 
+						sw.AddFlow(m, ((Port)w.left).getNumber(), priority);
+						return;
+					}
+				}
+			}
+		}
+		else
+			sw.AddFlow(m, Integer.parseInt(action), priority);
 	}
 
 	
 	@Override
 	public void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum, byte[] data) {
+			int portNum, Object[] data) {
 		Collections.sort(switches);
 		int i = Collections.binarySearch(switches, new DummySwitch(dpid, 0, 0, 0));
 		if(i < 0)
@@ -140,7 +159,7 @@ public class DummyNetwork implements INetwork, INetNode {
 
 	@Override
 	public void plug(Wire w) {
-		plugged = w;
+		plugged.add(w);
 	}
 
 	@Override
@@ -159,7 +178,11 @@ public class DummyNetwork implements INetwork, INetNode {
 		return messages;
 	}
 
-	public int getControllerPort(long dpid) {
+	/**
+	 * Return the port the controller is on
+	 */
+	@Override
+	public int ControllerPort() {
 		// TODO Auto-generated method stub
 		return 0;
 	}

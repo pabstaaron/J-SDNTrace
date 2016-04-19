@@ -15,9 +15,9 @@ public class Packet {
 	private long dstIp, srcIp; // The ip address that this packet is being sent to.
 	int etherType; 
 	String protocol;
-	byte[] data;
+	Object[] data;
 	
-	public Packet(long dst, long dstIp, long srcIp, long src, String protocol, int etherType, byte[] data){
+	public Packet(long dst, long dstIp, long srcIp, long src, String protocol, int etherType, Object[] data){
 		this.dst = dst;
 		this.src = src;
 		this.protocol = protocol;
@@ -67,7 +67,7 @@ public class Packet {
 		return dstIp;
 	}
 	
-	public byte[] getData(){
+	public Object[] getData(){
 		return data;
 	}
 	
