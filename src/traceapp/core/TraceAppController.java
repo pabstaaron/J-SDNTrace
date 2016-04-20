@@ -1,6 +1,9 @@
 package traceapp.core;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Implements the SDNTrace protocol.
@@ -74,12 +77,67 @@ public class TraceAppController {
 		// If the destination is not directly attached to the present switch, append the hop info
 		// 	to the data field of the packet, send the packet along to 
 	    // 	the next hop as determined by this object's netMap.
+		
 		// TODO: How do we determine if the destination is directly attached?
+		//	Could look at the number of nodes on each port, if there's more than one node on the destination's
+		//	port, you know it's definitely not a direct attachment. If there's one node on a port though,
+		//	you don't know for sure it's a direct attachment.
+		// *If you build the map only on port status changes, your map for each switch will only 
+		//  contain the nodes that are directly connected to that switch. However, this introduces
+		//  a problem in figuring out where to send the packet next
 		
 		// If it's time to send the reply, look up the requester in the netMap and send the response
-		// 	straight back
-		// TODO: Again we have a direct v. indirect attachment problem here.
+		// 	directly out the switch the requester is connected to, as opposed to sending the packet back
+		//	down the chain.
 		
+		long dst = p.getDestination();
+		
+		List<Object>data = new ArrayList<Object>();
+		Object hop = "DPID=" + Long.toString(dpid);
+		for(int i = 0; i < p.getData().length; i++){
+			if(p.getData()[i] == null)
+				break;
+			data.add(p.getData()[i]);
+		}
+		data.add(hop);
+		
+		Packet toSend = new Packet(dst, p.getDstIp(), p.getSourceIp(), p.getSourceMac(),
+				p.getProtocol(), p.getEtherType(), data.toArray());
+		
+		HashMap<Long, Integer> swMap = netMap.get(p.getProtocol()).get(dpid);
+		
+		if(swMap.containsKey(dst)){ // If the node is directly connected to this switch
+			// Trace complete. Return to sender.
+			HashMap<Long, HashMap<Long, Integer>> map = netMap.get(p.getProtocol());
+			long dp = searchForSwitch(p.getSource(), map);
+			
+			network.SendPacket(dp, p.getDestination(), p.getSource(), p.getDstIp(), 
+					p.getSourceIp(), p.getProtocol(), 32, -1, data.toArray());
+		}
+		else{ // The node is not directly attached
+			// Send probe back along its way
+			network.SendPacket(dpid, p.getSource(), dst, p.getSourceIp(), 
+					p.getDstIp(), p.getProtocol(), 32, -1, data.toArray());
+		}
+	}
+	
+	/**
+	 * Find the dpid that the specified mac is on.
+	 * 
+	 * Return -1 if not present.
+	 * 
+	 * @param mac
+	 * @param toSearch
+	 * @return
+	 */
+	private long searchForSwitch(long mac, HashMap<Long, HashMap<Long, Integer>> toSearch){
+		for(long l : toSearch.keySet()){
+			HashMap<Long, Integer> m = toSearch.get(l);
+			if(m.containsKey(mac))
+				return l;
+		}
+		
+		return -1;
 	}
 	
 	/**

@@ -29,7 +29,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	public void sendPingRequest(long dstIp){
 		messages += "\nSending ping request to " + dstIp + "...";
 		
-		Packet p = new Packet(0, dstIp, ip, mac, "tcp", 8, new byte[32]);
+		Packet p = new Packet(0, dstIp, ip, mac, "tcp", 8, new Object[32]);
 		
 		if(plugged == null){ // There's nowhere for the packet to go
 			messages += "\nDestination unreachable";
@@ -43,7 +43,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	}
 	
 	private void sendPingReply(long srcIp){
-		Packet p = new Packet(0, srcIp, ip, mac, "tcp", 0, new byte[32]);
+		Packet p = new Packet(0, srcIp, ip, mac, "tcp", 0, new Object[32]);
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return;
@@ -62,7 +62,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	 * @return
 	 */
 	public Packet sendTrace(String protocol, long dstMac){
-		Packet p = new Packet(dstMac, -1, ip, mac, "tcp", TRACE_REQUEST, new byte[32]);
+		Packet p = new Packet(dstMac, -1, ip, mac, "tcp", TRACE_REQUEST, new Object[32]);
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return p;

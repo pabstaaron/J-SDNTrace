@@ -81,4 +81,9 @@ public class Packet {
 		
 		return result;
 	}
+
+	public long getSourceMac() {
+		return src;
+	}
+
 }
