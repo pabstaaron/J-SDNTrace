@@ -21,10 +21,12 @@ public class Port implements INetNode, Comparable<Port>{
 		this.parent = parent;
 	}
 	
+	// TODO - Status changed should be signaled here
 	public void enable(){
 		isEnabled = true;
 	}
 	
+	// TODO - Status changed should be triggered here
 	public void disable(){
 		isEnabled = false;
 	}

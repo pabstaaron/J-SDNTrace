@@ -40,7 +40,7 @@ public interface INetwork {
 	 * @param outPort
 	 */
 	void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum, Object[] data);
+			int portNum, int ethType, Object[] data);
 
 	/**
 	 * @return The port on any given switch the controller is connected to. Most OF controllers provide

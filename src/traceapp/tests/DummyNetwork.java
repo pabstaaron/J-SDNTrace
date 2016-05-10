@@ -25,6 +25,7 @@ public class DummyNetwork implements INetwork, INetNode {
 	private List<Wire> plugged;
 	private TraceAppController cont;
 	private final static int TRACE_REQUEST = 0x8820;
+	private final static int PORT_STATUS = 10;
 	private String messages;
 	
 	public DummyNetwork(long ip, long mac){
@@ -37,6 +38,10 @@ public class DummyNetwork implements INetwork, INetNode {
 	
 	public int size(){
 		return switches.size() + hosts.size();
+	}
+	
+	public TraceAppController getCont(){
+		return cont;
 	}
 	
 	@Override
@@ -72,7 +77,7 @@ public class DummyNetwork implements INetwork, INetNode {
 	
 	@Override
 	public void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum, Object[] data) {
+			int portNum, int ethType, Object[] data) {
 		Collections.sort(switches);
 		int i = Collections.binarySearch(switches, new DummySwitch(dpid, 0, 0, 0));
 		if(i < 0)
@@ -80,7 +85,7 @@ public class DummyNetwork implements INetwork, INetNode {
 		
 		DummySwitch sw = switches.get(i);
 		
-		sw.packetIn(new Packet(dstMac, dstIP, srcIP, srcMac, proto, i, data), sw.getPort(portNum));
+		sw.packetIn(new Packet(dstMac, dstIP, srcIP, srcMac, proto, ethType, data), sw.getPort(portNum));
 	}
 
 	/**
@@ -94,6 +99,10 @@ public class DummyNetwork implements INetwork, INetNode {
 	public DummySwitch AddSwitch(long dpid, int numPorts, long mac, long ipV4){
 		DummySwitch sw = new DummySwitch(dpid, numPorts, mac, ipV4);
 		switches.add(sw);
+		Wire w = new Wire();
+		w.left = this;
+		w.right = sw.plug(1, w, true);
+		plug(w);
 		cont.SwitchInfoReceived(dpid);
 		return sw;
 	}
@@ -167,6 +176,10 @@ public class DummyNetwork implements INetwork, INetNode {
 		if(p.getEtherType() == 8 && p.getDstIp() == mac){ // A ping request sent to this object
 			
 		}
+		else if(p.getEtherType() == PORT_STATUS){
+			cont.OnPortStatusChange((long)p.getData()[0], (int)p.getData()[1], (long)p.getData()[2]);
+			return;
+		}
 		else if(p.getEtherType() == TRACE_REQUEST){ // This is a trace packet
 			messages += "\nReceived trace packet";
 		}
@@ -189,5 +202,9 @@ public class DummyNetwork implements INetwork, INetNode {
 
 	public int numSwitches() {
 		return switches.size();
+	}
+	
+	public void PortStatusChange(long dpid, int portNum, long mac){
+		cont.OnPortStatusChange(dpid, portNum, mac);
 	}
 }

@@ -20,31 +20,32 @@ public class TraceAppTester {
 	public void oneHop(){
 		// Set up a network with one switch and two hosts.
 		DummyNetwork net = new DummyNetwork(1, 1);
-		DummySwitch s1 = net.AddSwitch(2, 2, 2, 2);
+		DummySwitch s1 = net.AddSwitch(2, 20, 2, 2);
 		DummyHost h1 = net.AddHost(3, 3);
 		DummyHost h2 = net.AddHost(4, 4);
 		
 		Wire w1 = new Wire();
 		w1.left = h1;
 		h1.plug(w1);
-		w1.right = s1.plug(1, w1);
+		w1.right = s1.plug(2, w1);
 		
 		Wire w2 = new Wire();
-		w2.left = s1.plug(2, w2);
 		w2.right = h2;
 		h2.plug(w1);
+		w2.left = s1.plug(3, w2);
 		
-		TraceAppController cont = new TraceAppController(net);
+		//TraceAppController cont = new TraceAppController(net);
 		
 		// Send a trace request from h1 to h2.
 		h1.sendPingRequest(4); // TODO shouldn't need to ping ahead before a trace.
 		Assert.assertTrue(h1.getMessages().contains("Ping reply received from:"));
 		h1.sendTrace("tcp", 4);
+		Assert.assertTrue(net.getMessages().contains("Received trace packet"));
 		Assert.assertTrue(h1.getMessages().contains("Received trace reply"));
 	}
 	
 	@Test
-	public void longLinerTest(){
+	public void longLinearTest(){
 		DummyNetwork net = generateRandomNetwork(10, "linear", 6, false);
 		
 		DummySwitch s1 = net.randomSwitch(5);
@@ -95,8 +96,8 @@ public class TraceAppTester {
 				i++;
 				if(switches.size() >= 2){
 					Wire w = new Wire();
-					w.left = switches.get(i-2).plug(1, w);
-					w.right = switches.get(i-1).plug(2, w);
+					w.left = switches.get(i-2).plug(2, w);
+					w.right = switches.get(i-1).plug(3, w);
 				}
 			}while(net.numSwitches() < maxSwitches);
 			
@@ -130,12 +131,12 @@ public class TraceAppTester {
 		
 		Wire b1 = new Wire();
 		b1.left = h1;
-		Port p1 = s1.plug(1, b1);
+		Port p1 = s1.plug(2, b1);
 		b1.right = p1;
 		
 		Wire b2 = new Wire();
 		b2.right = h2;
-		b2.left = s1.plug(2, b2);
+		b2.left = s1.plug(3, b2);
 		
 		h1.plug(b1);
 		h2.plug(b2);
@@ -155,10 +156,10 @@ public class TraceAppTester {
 		
 		Wire b1 = new Wire();
 		b1.left = h1;
-		b1.right = s1.plug(1, b1);
+		b1.right = s1.plug(2, b1);
 		
 		Wire b2 = new Wire();
-		b2.left = s1.plug(2, b2);
+		b2.left = s1.plug(3, b2);
 		b2.right = s2.plug(100, b2);
 		
 		Wire b3 = new Wire();
@@ -181,7 +182,7 @@ public class TraceAppTester {
 		
 		Wire b1 = new Wire();
 		b1.left = h1;
-		b1.right = s1.plug(1, b1);
+		b1.right = s1.plug(2, b1);
 		h1.plug(b1);
 		
 		
@@ -191,7 +192,7 @@ public class TraceAppTester {
 			
 			Wire w = new Wire();
 			w.left = h;
-			w.right = s1.plug(i+2, w);
+			w.right = s1.plug(i+3, w);
 			
 			h.plug(w);
 		}
@@ -213,12 +214,12 @@ public class TraceAppTester {
 		
 		Wire w1 = new Wire();
 		w1.left = h1;
-		Port p = s1.plug(1, w1);
+		Port p = s1.plug(2, w1);
 		w1.right = p;
 		h1.plug(w1);
 		
 		Wire w2 = new Wire();
-		Port p1 = s1.plug(2, w2);
+		Port p1 = s1.plug(3, w2);
 		w2.left = p1;
 		w2.right = h2;
 		h2.plug(w2);
@@ -226,10 +227,10 @@ public class TraceAppTester {
 		Wire w3 = new Wire();
 		w3.left = net;
 		net.plug(w3);
-		Port p2 = s1.plug(3, w3);
+		Port p2 = s1.plug(4, w3);
 		w3.right = p2;
 		
-		net.AddFlow(2, -1, -1, 0x8820, 1000, Integer.toString(p2.getNumber()), "");
+		//net.AddFlow(2, -1, -1, 0x8820, 1000, Integer.toString(p2.getNumber()), "");
 		h1.sendTrace("tcp", 3);
 		Assert.assertEquals("\nReceived trace packet", net.getMessages());
 	}

@@ -25,6 +25,8 @@ public class DummySwitch implements Comparable<DummySwitch>{
 	
 	private List<Flow> flowTable;
 	
+	private int controllerPort;
+	
 	/**
 	 * TODO fill-in
 	 * 
@@ -45,6 +47,8 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		}
 		
 		flowTable = new ArrayList<Flow>();
+		
+		controllerPort = -1;
 	}
 	
 	/**
@@ -65,6 +69,8 @@ public class DummySwitch implements Comparable<DummySwitch>{
 	/**
 	 * "Plug" a cable into the specified port.
 	 * 
+	 * TODO - Port status change should be signaled here
+	 * 
 	 * Throws IllegalArgumentException if port is null or out of range
 	 * @param port
 	 * @param w
@@ -74,9 +80,35 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		if(port <= 0 || port > ports.size())
 			throw new IllegalArgumentException();
 		
+		// Send a message out the controller port indicating that the port status was changed
+		if(w.right instanceof DummyHost){
+			Object[] statParams = new Object[3];
+			statParams[0] = dpid;
+			statParams[1] = port;
+			statParams[2] = ((DummyHost)w.right).getMac();
+			
+			Packet p = new Packet(-1, -1, -1, -1, "", 10, statParams);
+			getPort(controllerPort).packetOut(p);
+		}
+		else if(w.left instanceof DummyHost){
+			Object[] statParams = new Object[3];
+			statParams[0] = dpid;
+			statParams[1] = port;
+			statParams[2] = ((DummyHost)w.left).getMac();
+			
+			Packet p = new Packet(-1, -1, -1, -1, "", 10, statParams);
+			getPort(controllerPort).packetOut(p);
+		}
+		
 		int i = Collections.binarySearch(ports, new Port(port, false, this));
 		ports.get(i).plug(w);
 		return ports.get(i);
+	}
+	
+	public Port plug(int port, Wire w, boolean isController){
+		if(isController)
+			controllerPort = port;
+		return plug(port, w);
 	}
 
 	@Override
@@ -113,8 +145,12 @@ public class DummySwitch implements Comparable<DummySwitch>{
 			}
 		}
 		
+		// TODO - The controller needs to get notified here
+		Port conn = getPort(controllerPort);
+		conn.packetOut(p);
+		
 		for(Port out : ports){
-			if(out.getNumber() == in.getNumber()) // Don't send the packet back out the port it came in on. 
+			if(in != null && out.getNumber() == in.getNumber()) // Don't send the packet back out the port it came in on. 
 				continue;
 			out.packetOut(p);
 		}

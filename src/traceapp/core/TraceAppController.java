@@ -22,6 +22,7 @@ public class TraceAppController {
 	// Used for keeping track of what mac address belongs to what port
 	// keys on protocol (tcp/upd), DPID, and MAC with a port number for a value
 		// TODO What if MAC is on multiple ports on the same DPID?
+		// TODO Do we really need two maps for TCP and UDP?
 	private HashMap<String, HashMap<Long, HashMap<Long, Integer>>> netMap;
 	
 	private String debugMessages; // Used to store and retrieve debugging info.
@@ -112,12 +113,12 @@ public class TraceAppController {
 			long dp = searchForSwitch(p.getSource(), map);
 			
 			network.SendPacket(dp, p.getDestination(), p.getSource(), p.getDstIp(), 
-					p.getSourceIp(), p.getProtocol(), 32, -1, data.toArray());
+					p.getSourceIp(), p.getProtocol(), 32, 2, TRACE_PACKET, data.toArray());
 		}
 		else{ // The node is not directly attached
 			// Send probe back along its way
 			network.SendPacket(dpid, p.getSource(), dst, p.getSourceIp(), 
-					p.getDstIp(), p.getProtocol(), 32, -1, data.toArray());
+					p.getDstIp(), p.getProtocol(), 32, 10, TRACE_PACKET, data.toArray());
 		}
 	}
 	
@@ -156,31 +157,59 @@ public class TraceAppController {
 			// TODO: This may not create a complete map depending on how the underlying OpenFlow learns.
 			// TODO: Should be building the netMap on port status changes, as that is a more robust
 			// 			method.
-		if(netMap.containsKey(pkt.getProtocol())){
-			HashMap<Long, HashMap<Long, Integer>> m = netMap.get(pkt.getProtocol());
-			if(netMap.containsKey(dpid)){
-				HashMap<Long, Integer> n = m.get(dpid);
-				if(!n.containsKey(mac)){
-					n.put(mac, port);
-				}
-			}
-			else{
-				HashMap<Long, Integer> toAdd = new HashMap<Long, Integer>();
-				toAdd.put(mac, port);
-				m.put(dpid, toAdd);
-			}
-		}
-		else{
-			HashMap<Long, Integer> toAdd1 = new HashMap<Long, Integer>();
-			toAdd1.put(mac, port);
-			HashMap<Long, HashMap<Long, Integer>> toAdd2 = new HashMap<Long, HashMap<Long, Integer>>();
-			toAdd2.put(dpid, toAdd1);
-			netMap.put(pkt.getProtocol(), toAdd2);
-		}
+//		if(netMap.containsKey(pkt.getProtocol())){
+//			HashMap<Long, HashMap<Long, Integer>> m = netMap.get(pkt.getProtocol());
+//			if(netMap.containsKey(dpid)){
+//				HashMap<Long, Integer> n = m.get(dpid);
+//				if(!n.containsKey(mac)){
+//					n.put(mac, port);
+//				}
+//			}
+//			else{
+//				HashMap<Long, Integer> toAdd = new HashMap<Long, Integer>();
+//				toAdd.put(mac, port);
+//				m.put(dpid, toAdd);
+//			}
+//		}
+//		else{
+//			HashMap<Long, Integer> toAdd1 = new HashMap<Long, Integer>();
+//			toAdd1.put(mac, port);
+//			HashMap<Long, HashMap<Long, Integer>> toAdd2 = new HashMap<Long, HashMap<Long, Integer>>();
+//			toAdd2.put(dpid, toAdd1);
+//			netMap.put(pkt.getProtocol(), toAdd2);
+//		}
 		
 		
 		if(pkt.getEtherType() == TRACE_PACKET){
 			HandleTrace(pkt, dpid);
+		}
+	}
+	
+	/**
+	 * To be called whenever OF Receives a PortStatusChanged message
+	 * 
+	 * Pass -1 for mac address to signal that there is no longer an address on this port
+	 */
+	public void OnPortStatusChange(long dpid, int portNum, long mac){
+		HashMap<Long, HashMap<Long, Integer>> tcpMap = netMap.get("tcp");
+		
+		// Determine whether or not the port is already registered on the switch
+			// If yes, update the mac address and return
+			// If no, add a new entry with the port and the mac
+		
+		if(!tcpMap.containsKey(dpid)){
+			HashMap<Long, Integer> newMap = new HashMap<Long, Integer>();
+			newMap.put(mac, portNum);
+			tcpMap.put(dpid, newMap);
+		}
+		else{
+			HashMap<Long, Integer> map = tcpMap.get(dpid);
+			if(!map.containsKey(mac))
+				map.put(mac, portNum);
+			else{
+				map.remove(mac);
+				map.put(mac, portNum);
+			}
 		}
 	}
 }
