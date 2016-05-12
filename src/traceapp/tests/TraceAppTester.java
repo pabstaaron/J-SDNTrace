@@ -51,11 +51,18 @@ public class TraceAppTester {
 		DummySwitch s1 = net.randomSwitch(5);
 		DummySwitch s2 = net.randomSwitch(11);
 		
+		int nextSeed = 12;
+		while(s1 == s2){
+			s2 = net.randomSwitch(nextSeed);
+			nextSeed++;
+		}
+		
 		DummyHost h1 = (DummyHost)s1.getPort(3).getPlugged();
 		DummyHost h2 = (DummyHost)s2.getPort(3).getPlugged();
 		
 		h1.sendPingRequest(h2.getIp());
-		Assert.assertTrue(h1.getMessages().contains("Ping reply received from:"));
+		Assert.assertEquals("\nSending ping request to " + h2.getIp() + "..."
+				+ "\nPing reply received from: " + h2.getIp(), h1.getMessages());
 		
 		h1.sendTrace("tcp", h2.getMac());
 		Assert.assertTrue(h1.getMessages().contains("Received trace reply"));
@@ -92,7 +99,7 @@ public class TraceAppTester {
 			int maxSwitches = (int)((1.0/2)*maxNodes);
 			int i = 0;
 			do{
-				switches.add(net.AddSwitch(rand.nextInt(100000), 100, rand.nextInt(100000), rand.nextInt(100000)));
+				switches.add(net.AddSwitch(rand.nextInt(100000), 5, rand.nextInt(100000), rand.nextInt(100000)));
 				i++;
 				if(switches.size() >= 2){
 					Wire w = new Wire();
@@ -108,6 +115,22 @@ public class TraceAppTester {
 				h.plug(w);
 				w.right = s.plug(3, w);
 			}
+		}
+		else if(topo == "star"){
+			// Make 1 switch
+			// Fill in a random number of hosts on random ports
+			int numNodes = rand.nextInt(maxNodes);
+			DummySwitch sw = net.AddSwitch(rand.nextInt(100000), 5, rand.nextInt(100000), rand.nextInt(100000));
+			numNodes--;
+			
+			
+		}
+		else if(topo == "mesh"){
+			// Generate a random number of switches, connecting each switch to all the others
+			// Generate a random number of hosts and plug them into random switches
+		}
+		else{
+			
 		}
 		
 		for(DummySwitch s : switches){

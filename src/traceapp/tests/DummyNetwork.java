@@ -85,7 +85,7 @@ public class DummyNetwork implements INetwork, INetNode {
 		
 		DummySwitch sw = switches.get(i);
 		
-		sw.packetIn(new Packet(dstMac, dstIP, srcIP, srcMac, proto, ethType, data), sw.getPort(portNum));
+		sw.packetInWoController(new Packet(dstMac, dstIP, srcIP, srcMac, proto, ethType, data), sw.getPort(portNum));
 	}
 
 	/**

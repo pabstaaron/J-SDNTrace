@@ -113,7 +113,7 @@ public class TraceAppController {
 			long dp = searchForSwitch(p.getSource(), map);
 			
 			network.SendPacket(dp, p.getDestination(), p.getSource(), p.getDstIp(), 
-					p.getSourceIp(), p.getProtocol(), 32, 2, TRACE_PACKET, data.toArray());
+					p.getSourceIp(), p.getProtocol(), 32, 10, TRACE_PACKET, data.toArray());
 		}
 		else{ // The node is not directly attached
 			// Send probe back along its way

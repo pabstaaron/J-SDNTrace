@@ -137,7 +137,7 @@ public class DummySwitch implements Comparable<DummySwitch>{
 			// If yes, take the action defined by that flow
 			//Else flood to all ports
 		
-		for(Flow f : flowTable){
+		for(Flow f : flowTable){ // TODO - Problem here when trace response is sent from controller. This will match the trace criteria and kick off an infinite loop
 			if(f.IsMatch(p, in.getNumber())){
 				Port out = getPort(f.getOut());
 				out.packetOut(p);
@@ -150,7 +150,15 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		conn.packetOut(p);
 		
 		for(Port out : ports){
-			if(in != null && out.getNumber() == in.getNumber()) // Don't send the packet back out the port it came in on. 
+			if((in != null && out.getNumber() == in.getNumber()) || out.getNumber() == controllerPort) // Don't send the packet back out the port it came in on. 
+				continue;
+			out.packetOut(p);
+		}
+	}
+	
+	public void packetInWoController(Packet p, Port in){
+		for(Port out : ports){
+			if((in != null && out.getNumber() == in.getNumber()) || out.getNumber() == controllerPort) // Don't send the packet back out the port it came in on. 
 				continue;
 			out.packetOut(p);
 		}
