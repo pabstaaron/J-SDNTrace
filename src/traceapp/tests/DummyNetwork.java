@@ -5,9 +5,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import net.floodlightcontroller.packet.IPacket;
 import traceapp.core.INetwork;
 import traceapp.core.Packet;
 import traceapp.core.TraceAppController;
+import traceapp.core.TracePacket;
 
 /**
  * Implements a mock network for testing purposes.
@@ -76,8 +78,7 @@ public class DummyNetwork implements INetwork, INetNode {
 
 	
 	@Override
-	public void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum, int ethType, Object[] data) {
+	public void SendPacket(long dpid, IPacket pkt) {
 		Collections.sort(switches);
 		int i = Collections.binarySearch(switches, new DummySwitch(dpid, 0, 0, 0));
 		if(i < 0)
@@ -85,7 +86,7 @@ public class DummyNetwork implements INetwork, INetNode {
 		
 		DummySwitch sw = switches.get(i);
 		
-		sw.packetInWoController(new Packet(dstMac, dstIP, srcIP, srcMac, proto, ethType, data), sw.getPort(portNum));
+		sw.packetInWoController(pkt, sw.getPort(1));
 	}
 
 	/**
@@ -172,19 +173,19 @@ public class DummyNetwork implements INetwork, INetNode {
 	}
 
 	@Override
-	public void packetIn(Packet p, long dpid, int port) {
-		if(p.getEtherType() == 8 && p.getDstIp() == mac){ // A ping request sent to this object
+	public void packetIn(IPacket p, long dpid, int port) {
+		if(p instanceof PingPacket && ((PingPacket)p).getDest() == mac){ // A ping request sent to this object
 			
 		}
-		else if(p.getEtherType() == PORT_STATUS){
-			cont.OnPortStatusChange((long)p.getData()[0], (int)p.getData()[1], (long)p.getData()[2]);
+		else if(p instanceof PortStatus){
+			PortStatus ps = (PortStatus)p;
+			cont.OnPortStatusChange(ps.getDpid(), ps.getPort(), ps.getMac());
 			return;
 		}
-		else if(p.getEtherType() == TRACE_REQUEST){ // This is a trace packet
+		else if(p instanceof TracePacket){ // This is a trace packet
 			messages += "\nReceived trace packet";
+			cont.PacketIn((TracePacket)p, dpid);
 		}
-		
-		cont.PacketIn(p, dpid, port);
 	}
 
 	public String getMessages(){
@@ -194,11 +195,11 @@ public class DummyNetwork implements INetwork, INetNode {
 	/**
 	 * Return the port the controller is on
 	 */
-	@Override
-	public int ControllerPort() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+//	@Override
+//	public int ControllerPort() {
+//		// TODO Auto-generated method stub
+//		return 0;
+//	}
 
 	public int numSwitches() {
 		return switches.size();

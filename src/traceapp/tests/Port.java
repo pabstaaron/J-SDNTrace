@@ -1,6 +1,8 @@
 package traceapp.tests;
 
+import net.floodlightcontroller.packet.IPacket;
 import traceapp.core.Packet;
+import traceapp.core.TracePacket;
 
 /**
  * Represents a virtual port on a switch.
@@ -41,12 +43,12 @@ public class Port implements INetNode, Comparable<Port>{
 	}
 
 	@Override
-	public void packetIn(Packet p, long dpid, int port) {
+	public void packetIn(IPacket p, long dpid, int port) {
 		if(isEnabled)
 			parent.packetIn(p, this);
 	}
 
-	public void packetOut(Packet p){
+	public void packetOut(IPacket p){
 		if(plugged == null || !isEnabled)
 			return;
 		

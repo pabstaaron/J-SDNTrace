@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.floodlightcontroller.packet.IPacket;
 import traceapp.core.Packet;
+import traceapp.core.TracePacket;
 
 /**
  * Represents a simple virtual switch with a set of ports and a flow table.
@@ -87,7 +89,7 @@ public class DummySwitch implements Comparable<DummySwitch>{
 			statParams[1] = port;
 			statParams[2] = ((DummyHost)w.right).getMac();
 			
-			Packet p = new Packet(-1, -1, -1, -1, "", 10, statParams);
+			PortStatus p = new PortStatus(dpid, port, ((DummyHost)w.right).getMac());
 			getPort(controllerPort).packetOut(p);
 		}
 		else if(w.left instanceof DummyHost){
@@ -96,7 +98,8 @@ public class DummySwitch implements Comparable<DummySwitch>{
 			statParams[1] = port;
 			statParams[2] = ((DummyHost)w.left).getMac();
 			
-			Packet p = new Packet(-1, -1, -1, -1, "", 10, statParams);
+			//Packet p = new Packet(-1, -1, -1, -1, "", 10, statParams);
+			PortStatus p = new PortStatus(dpid, port, ((DummyHost)w.left).getMac());
 			getPort(controllerPort).packetOut(p);
 		}
 		
@@ -132,7 +135,7 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		return dpid;
 	}
 	
-	public void packetIn(Packet p, Port in){
+	public void packetIn(IPacket p, Port in){
 		// Determine if there is a flow that matches the packet
 			// If yes, take the action defined by that flow
 			//Else flood to all ports
@@ -156,7 +159,7 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		}
 	}
 	
-	public void packetInWoController(Packet p, Port in){
+	public void packetInWoController(IPacket p, Port in){
 		for(Port out : ports){
 			if((in != null && out.getNumber() == in.getNumber()) || out.getNumber() == controllerPort) // Don't send the packet back out the port it came in on. 
 				continue;

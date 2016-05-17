@@ -1,6 +1,8 @@
 package traceapp.tests;
 
+import net.floodlightcontroller.packet.IPacket;
 import traceapp.core.Packet;
+import traceapp.core.TracePacket;
 
 public interface INetNode {
 	/**
@@ -11,5 +13,5 @@ public interface INetNode {
 	
 	public void plug(Wire w);
 	
-	public void packetIn(Packet p, long dpid, int port);
+	public void packetIn(IPacket p, long dpid, int port);
 }

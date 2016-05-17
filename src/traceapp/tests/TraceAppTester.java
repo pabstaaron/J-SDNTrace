@@ -4,8 +4,15 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import org.junit.*;
+import org.projectfloodlight.openflow.types.IpProtocol;
+import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.types.TransportPort;
 
+import net.floodlightcontroller.packet.PacketParsingException;
+import net.floodlightcontroller.packet.TCP;
+import traceapp.core.Hop;
 import traceapp.core.TraceAppController;
+import traceapp.core.TracePacket;
 
 /**
  * Provides automatic tests for TraceApp that are run independent of any sort of physical network.
@@ -256,5 +263,32 @@ public class TraceAppTester {
 		//net.AddFlow(2, -1, -1, 0x8820, 1000, Integer.toString(p2.getNumber()), "");
 		h1.sendTrace("tcp", 3);
 		Assert.assertEquals("\nReceived trace packet", net.getMessages());
+	}
+	
+	@Test
+	public void TacePacketTest1(){
+		TracePacket p = new TracePacket();
+		p.setDestination(MacAddress.of(1));
+		p.setSource(MacAddress.of(2));
+		p.setProtocol(IpProtocol.TCP);
+		p.setTTL((byte)255);
+		p.setType(true);
+		TCP tcp = new TCP();
+		tcp.setSourcePort(TransportPort.of(6000));
+		tcp.setDestinationPort(6000);
+		p.setPayload(tcp);
+		p.appendHop(new Hop(1));
+		byte[] data = p.serialize();
+		
+		TracePacket p2 = new TracePacket();
+		
+		try {
+			p2.deserialize(data, 0, data.length);
+			
+			Assert.assertTrue(p.equals(p2));
+		} catch (PacketParsingException e) {
+			// TODO Auto-generated catch block
+			Assert.fail();
+		}
 	}
 }

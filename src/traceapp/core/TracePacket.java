@@ -26,19 +26,19 @@ public class TracePacket extends BasePacket{
         protocolClassMap.put(IpProtocol.UDP, UDP.class);
     }
     
-    protected MacAddress destinationMAC; // 32 bits = 4 bytes
-    protected MacAddress sourceMAC; // 32 bits = 4 bytes
-    protected IpProtocol protocol; // 1 byte
-    protected IPacket payload; // TCP or UDP payload
-    protected byte version;
-    protected byte headerLength;
-    protected byte ttl;
-    protected List<Hop> hops;
+    private MacAddress destinationMAC; // 64 bits = 8 bytes
+    private MacAddress sourceMAC; // 64 bits = 8 bytes
+    private IpProtocol protocol; // 1 byte
+    //private IPacket payload; // TCP or UDP payload
+    private byte version;
+    private byte headerLength;
+    private byte ttl;
+    private List<Hop> hops;
     
     /**
      * Indicates whether the packet is a request a reply. True for request, false for reply.
      */
-    protected boolean request; 
+    private boolean request; 
 	
     public TracePacket(){
     	super();
@@ -73,6 +73,10 @@ public class TracePacket extends BasePacket{
     	this.request = request;
     }
     
+    public void setProtocol(IpProtocol p){
+    	protocol = p;
+    }
+    
     public MacAddress getDestination(){
     	return destinationMAC;
     }
@@ -85,9 +89,9 @@ public class TracePacket extends BasePacket{
     	return ttl;
     }
     
-    public byte getHeaderLength(){
-    	return headerLength;
-    }
+//    public byte getHeaderLength(){
+//    	return headerLengthpayload;
+//    }
     
     public boolean getType(){
     	return request;
@@ -97,40 +101,48 @@ public class TracePacket extends BasePacket{
     	return hops;
     }
     
+    public IpProtocol getProtocol(){
+    	return protocol;
+    }
+    
+    public byte getVersion(){
+    	return version;
+    }
+    
 	@Override
 	public byte[] serialize() {
 		// TODO Auto-generated method stub
 		
-		int length = 13 + (hops.size() * 4);
+		int length = 27 + (hops.size() * 8);
 		
 		byte[] payloadData = null;
         if (payload != null) {
             payload.setParent(this);
-            payloadData = payload.serialize();
+            payloadData = this.payload.serialize();
             length += payloadData.length + 2;
         }
 		
         
         byte[] data = new byte[length];
         ByteBuffer bb = ByteBuffer.wrap(data);
-        bb.putLong(destinationMAC.getLong());
-        bb.putLong(sourceMAC.getLong());
-        if(protocol.equals(IpProtocol.TCP))
+        bb.putLong(destinationMAC.getLong()); // 8 bytes
+        bb.putLong(sourceMAC.getLong()); // 8 bytes
+        if(protocol.equals(IpProtocol.TCP)) // 1 byte
         	bb.put((byte)0);
         else
         	bb.put((byte)1);
-        bb.put(version);
-        bb.put(ttl);
+        bb.put(version); // 1 byte
+        bb.put(ttl); // 1 byte
         
-        if(payloadData != null){
-        	bb.putInt(payloadData.length);
+        if(payloadData != null){ 
+        	bb.putInt(payloadData.length); // 4 byte
         	bb.put(payloadData);
         }
-        else
+        else // 4 byte
         	bb.putInt(0);
-        
+       
         // Need to transmit the number of hop entries as well
-        bb.putInt(hops.size());
+        bb.putInt(hops.size()); // 4 bytes
         
         for(Hop h : hops){
         	bb.putLong(h.getDpid());
@@ -159,14 +171,18 @@ public class TracePacket extends BasePacket{
 	
 		int payloadLength = bb.getInt();
 		
-		if(payloadLength > 0){
-			if(protocol.equals(IpProtocol.TCP))
-				payload = new TCP();
-			else
-				payload = new UDP();
+		
+		if(protocol.equals(IpProtocol.TCP))
+			payload = new TCP();
+		else
+			payload = new UDP();
 			
-			payload = payload.deserialize(data, bb.position(), payloadLength);
+		if(payloadLength > 0){
+			payload = this.payload.deserialize(data, bb.position(), payloadLength);
+			// TODO - Need to advance the bb cursor to reflect the end of the payload
+			bb.position(bb.position() + payloadLength);
 		}
+		
 		
 		int hopLength = bb.getInt();
 		
@@ -178,6 +194,38 @@ public class TracePacket extends BasePacket{
 		}
 		
 		return this;
+	}
+
+	public boolean equals(TracePacket p2) {
+		if(!destinationMAC.equals(p2.getDestination()))
+			return false;
+		else if(!sourceMAC.equals(p2.getSource()))
+			return false;
+		else if(!protocol.equals(p2.getProtocol()))
+			return false;
+		else if(version != p2.getVersion())
+			return false;
+		else if(ttl != p2.getTTL())
+			return false;
+//		else if(!payload.equals(p2.getPayload()))
+//			return false;
+		List<Hop> hops1 = p2.getHops();
+		int i = 0;
+		for(Hop h : hops){
+			if(h.dpid != hops1.get(i).dpid)
+				return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Convert this packet to a reply.
+	 * 
+	 * @return
+	 */
+	public TracePacket ConvertToReply() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

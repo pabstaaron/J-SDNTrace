@@ -1,6 +1,12 @@
 package traceapp.tests;
 
+import org.projectfloodlight.openflow.types.IpProtocol;
+import org.projectfloodlight.openflow.types.MacAddress;
+
+import net.floodlightcontroller.packet.IPacket;
+import net.floodlightcontroller.packet.TCP;
 import traceapp.core.Packet;
+import traceapp.core.TracePacket;
 
 /**
  * Represents a simple host that is capable of sending pings and trace packets
@@ -29,7 +35,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	public void sendPingRequest(long dstIp){
 		messages += "\nSending ping request to " + dstIp + "...";
 		
-		Packet p = new Packet(0, dstIp, ip, mac, "tcp", 8, new Object[32]);
+		PingPacket p = new PingPacket((int)ip, (int)dstIp);
 		
 		if(plugged == null){ // There's nowhere for the packet to go
 			messages += "\nDestination unreachable";
@@ -43,7 +49,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	}
 	
 	private void sendPingReply(long srcIp){
-		Packet p = new Packet(0, srcIp, ip, mac, "tcp", 0, new Object[32]);
+		PingReply p = new PingReply((int)ip, (int)srcIp);
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return;
@@ -61,8 +67,19 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 	 * @param dstMac
 	 * @return
 	 */
-	public Packet sendTrace(String protocol, long dstMac){
-		Packet p = new Packet(dstMac, -1, ip, mac, "tcp", TRACE_REQUEST, new Object[32]);
+	public TracePacket sendTrace(String protocol, long dstMac){
+		TracePacket p = new TracePacket();
+		p.setDestination(MacAddress.of(dstMac));
+		p.setSource(MacAddress.of(mac));
+		
+		if(protocol == "tcp")
+			p.setProtocol(IpProtocol.TCP);
+		else
+			p.setProtocol(IpProtocol.UDP);
+		
+		p.setTTL((byte)255);
+		p.setType(true);
+		p.setPayload(new TCP());
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return p;
@@ -75,22 +92,23 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 		return p;
 	}
 	
-	public void packetIn(Packet p, long dpid, int port)
+	public void packetIn(IPacket p, long dpid, int port)
 	{
-		if(p.getSourceIp() == ip)
-			return;
+//		if(p instanceof TracePacket && ((TracePacket)p).get)
+//			return;
 		
-		if(p.getEtherType() == 8){ // This packet is a ping request
-			sendPingReply(p.getSourceIp());
+		if(p instanceof PingPacket){ // This packet is a ping request
+			if(((PingPacket)p).getDest() == this.ip)
+				sendPingReply(((PingPacket)p).getSource());
 		}
-		else if(p.getEtherType() == 0){ // This packet is a ping reply
-			messages += "\nPing reply received from: " + p.getSourceIp();
+		else if(p instanceof PingReply){ // This packet is a ping reply
+			messages += "\nPing reply received from: " + ((PingReply) p).getSource();
 		}
-		else if(p.getEtherType() == 0x8820){ // This packet is a trace reply
+		else if(p instanceof TracePacket){ // This packet is a trace reply
 			messages += "\nReceived trace reply\n";
 			// TODO The data field of the packet will contain the trace results
 					// Not sure if its worth it to deserialize the data for testing
-			messages += p.getData();
+			messages += ((TracePacket)p).getHops().toString();
 		}
 	}
 

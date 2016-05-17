@@ -1,6 +1,9 @@
 package traceapp.tests;
 
+import net.floodlightcontroller.packet.BasePacket;
+import net.floodlightcontroller.packet.IPacket;
 import traceapp.core.Packet;
+import traceapp.core.TracePacket;
 
 /**
  * Represents a mechanism for matching packets to flows.
@@ -29,21 +32,37 @@ public class Match {
 	 * @param inPort
 	 * @return A value indicating whether or not the specified packet is a match.
 	 */
-	public boolean isMatch(Packet p, int inPort){
+	public boolean isMatch(IPacket p, int inPort){
 		if((Integer)inPort != null && this.inPort != inPort && this.inPort > 0){
 			return false;
-		}
+		} 
 //		else if((Long)srcMac != null && srcMac != p.getSource()){
 //			return false;
 //		}
-		else if((Long)dstMac > 0 && dstMac != p.getDestination() && dstMac > 0){
-			return false;
+//		else if((Long)dstMac > 0 && dstMac != p.getDestination().getLong() && dstMac > 0){
+//			return false;
+//		}
+//		else if((Integer)ethType > 0 && ethType != p.getEtherType() && ethType > 0){
+//			return false;
+//		}
+//		else if(protocol != null && protocol != p.getProtocol().toString() && protocol != ""){
+//			return false;
+//		}
+		
+		else if(p instanceof PingPacket){
+			if(ethType != 0)
+				return false;
 		}
-		else if((Integer)ethType > 0 && ethType != p.getEtherType() && ethType > 0){
-			return false;
+		else if(p instanceof PingReply){
+			if(ethType != 0)
+				return false;
 		}
-		else if(protocol != null && protocol != p.getProtocol() && protocol != ""){
-			return false;
+		else if(p instanceof TracePacket){
+			// Check source and destination mac addresses
+			if(ethType != 0x8220)
+				return false;
+//			TracePacket tp = (TracePacket)p;
+//			if(tp.getDestination() != dstMac)
 		}
 		
 		return true;

@@ -2,7 +2,9 @@ package traceapp.tests;
 
 import java.util.*;
 
+import net.floodlightcontroller.packet.IPacket;
 import traceapp.core.Packet;
+import traceapp.core.TracePacket;
 
 /**
  * Represents a simple flow for testing purposes
@@ -36,7 +38,7 @@ public class Flow implements Comparable<Flow> {
 	 * @param inPort
 	 * @return
 	 */
-	public boolean IsMatch(Packet p, int inPort){
+	public boolean IsMatch(IPacket p, int inPort){
 		for(Match m : matchCriterea){
 			if(!m.isMatch(p, inPort))
 				return false;

@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import org.projectfloodlight.openflow.types.IpProtocol;
+
 /**
  * Implements the SDNTrace protocol.
  * 
@@ -71,7 +73,7 @@ public class TraceAppController {
 	/**
 	 * Control the trace process according to the SDNTrace specification.
 	 */
-	private void HandleTrace(Packet p, long dpid){
+	private void HandleTrace(TracePacket p, long dpid){
 		System.out.println("TraceApp received a trace request...");
 		
 		// If the destination is directly attached to the present switch, we're on the last hop
@@ -91,34 +93,27 @@ public class TraceAppController {
 		// 	directly out the switch the requester is connected to, as opposed to sending the packet back
 		//	down the chain.
 		
-		long dst = p.getDestination();
+		HashMap<Long, HashMap<Long, Integer>> switches;
+		if(p.getProtocol() == IpProtocol.TCP)
+			switches = netMap.get("tcp");
+		else
+			switches = netMap.get("tcp");
 		
-		List<Object>data = new ArrayList<Object>();
-		Object hop = "DPID=" + Long.toString(dpid);
-		for(int i = 0; i < p.getData().length; i++){
-			if(p.getData()[i] == null)
-				break;
-			data.add(p.getData()[i]);
+		HashMap<Long, Integer> sw = switches.get(dpid);
+		
+		// Append hop to packet
+		Hop h = new Hop(dpid);
+		p.appendHop(h);
+		
+		if(sw.containsKey(p.getDestination().getLong())){ // Direct Attachment
+			// Trace complete, return to sender
+			long returnSw = searchForSwitch(p.getSource().getLong(), switches);
+			TracePacket reply = p.ConvertToReply();
+			network.SendPacket(returnSw, reply);
 		}
-		data.add(hop);
-		
-		Packet toSend = new Packet(dst, p.getDstIp(), p.getSourceIp(), p.getSourceMac(),
-				p.getProtocol(), p.getEtherType(), data.toArray());
-		
-		HashMap<Long, Integer> swMap = netMap.get(p.getProtocol()).get(dpid);
-		
-		if(swMap.containsKey(dst)){ // If the node is directly connected to this switch
-			// Trace complete. Return to sender.
-			HashMap<Long, HashMap<Long, Integer>> map = netMap.get(p.getProtocol());
-			long dp = searchForSwitch(p.getSource(), map);
-			
-			network.SendPacket(dp, p.getDestination(), p.getSource(), p.getDstIp(), 
-					p.getSourceIp(), p.getProtocol(), 32, 10, TRACE_PACKET, data.toArray());
-		}
-		else{ // The node is not directly attached
-			// Send probe back along its way
-			network.SendPacket(dpid, p.getSource(), dst, p.getSourceIp(), 
-					p.getDstIp(), p.getProtocol(), 32, 10, TRACE_PACKET, data.toArray());
+		else{ // Indirect Attachment
+			// Trace incomplete, send along its way
+			network.SendPacket(dpid, p);
 		}
 	}
 	
@@ -149,40 +144,9 @@ public class TraceAppController {
 	 * @param dpid - The DPID of the switch the message was generated on
 	 * @param port - The port the packet came in on. For learning purposes.
 	 */
-	public void PacketIn(Packet pkt, long dpid, int port){
+	public void PacketIn(TracePacket pkt, long dpid){
 		System.out.println("TraceApp received a packet: " + pkt);
-		long mac = pkt.getSource();
-		
-		// Register the mac address and port if necessary.
-			// TODO: This may not create a complete map depending on how the underlying OpenFlow learns.
-			// TODO: Should be building the netMap on port status changes, as that is a more robust
-			// 			method.
-//		if(netMap.containsKey(pkt.getProtocol())){
-//			HashMap<Long, HashMap<Long, Integer>> m = netMap.get(pkt.getProtocol());
-//			if(netMap.containsKey(dpid)){
-//				HashMap<Long, Integer> n = m.get(dpid);
-//				if(!n.containsKey(mac)){
-//					n.put(mac, port);
-//				}
-//			}
-//			else{
-//				HashMap<Long, Integer> toAdd = new HashMap<Long, Integer>();
-//				toAdd.put(mac, port);
-//				m.put(dpid, toAdd);
-//			}
-//		}
-//		else{
-//			HashMap<Long, Integer> toAdd1 = new HashMap<Long, Integer>();
-//			toAdd1.put(mac, port);
-//			HashMap<Long, HashMap<Long, Integer>> toAdd2 = new HashMap<Long, HashMap<Long, Integer>>();
-//			toAdd2.put(dpid, toAdd1);
-//			netMap.put(pkt.getProtocol(), toAdd2);
-//		}
-		
-		
-		if(pkt.getEtherType() == TRACE_PACKET){
-			HandleTrace(pkt, dpid);
-		}
+		HandleTrace(pkt, dpid);
 	}
 	
 	/**

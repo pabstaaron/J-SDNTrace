@@ -1,5 +1,6 @@
 package traceapp.core;
 
+import net.floodlightcontroller.packet.IPacket;
 
 /**
  * Specifies actions and events that the underlying infrastructure must provide in order to 
@@ -39,8 +40,7 @@ public interface INetwork {
 	 * @param msg
 	 * @param outPort
 	 */
-	void SendPacket(long dpid, long srcMac, long dstMac, long srcIP, long dstIP, String proto, int TTL,
-			int portNum, int ethType, Object[] data);
+	void SendPacket(long dpid, IPacket pkt);
 
 	/**
 	 * @return The port on any given switch the controller is connected to. Most OF controllers provide
@@ -50,5 +50,5 @@ public interface INetwork {
 	 * 		find a way to leverage that. We won't be able to get an integer that corresponds to the 
 	 * 		controller port in real life.
 	 */
-	int ControllerPort();
+//	int ControllerPort();
 }
