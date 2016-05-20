@@ -225,7 +225,29 @@ public class TracePacket extends BasePacket{
 	 */
 	public TracePacket ConvertToReply() {
 		// TODO Auto-generated method stub
-		return null;
+		if(request == false)
+			return null;
+		
+		request = false;
+		MacAddress temp = sourceMAC;
+		sourceMAC = destinationMAC;
+		destinationMAC = temp;
+		
+		return this;
+	}
+	
+	@Override
+	public String toString(){
+		String ret = "Destination: " + destinationMAC.toString();
+		ret += "\n Source: " + sourceMAC.toString();
+		ret += "\nHops:";
+		
+		if(hops != null)
+			for(Hop h : hops){
+				ret += h.toString() + "\n";
+			}
+		
+		return ret;
 	}
 
 }

@@ -86,7 +86,7 @@ public class DummyNetwork implements INetwork, INetNode {
 		
 		DummySwitch sw = switches.get(i);
 		
-		sw.packetInWoController(pkt, sw.getPort(1));
+		sw.packetInWoController(pkt, sw.getPort(1), ((TracePacket)pkt).getDestination().getLong());
 	}
 
 	/**
@@ -115,9 +115,22 @@ public class DummyNetwork implements INetwork, INetNode {
 	 * @return
 	 */
 	public DummySwitch randomSwitch(int seed){
+		if(switches.size() <= 0)
+			return null;
+		
 		Random rand = new Random(seed);
-		int i = rand.nextInt(switches.size());
-		return switches.get(i);
+		if(switches.size() > 0){
+			int i = rand.nextInt(switches.size());
+			return switches.get(i);
+		}
+		
+		return switches.get(0);
+	}
+	
+	public DummyHost randomHost(int seed){
+		Random rand = new Random(seed);
+		int i = rand.nextInt(hosts.size());
+		return hosts.get(i);
 	}
 	
 	/**

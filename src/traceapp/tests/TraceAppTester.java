@@ -53,7 +53,7 @@ public class TraceAppTester {
 	
 	@Test
 	public void longLinearTest(){
-		DummyNetwork net = generateRandomNetwork(10, "linear", 6, false);
+		DummyNetwork net = generateRandomNetwork(10, "linear", 20, false);
 		
 		DummySwitch s1 = net.randomSwitch(5);
 		DummySwitch s2 = net.randomSwitch(11);
@@ -64,14 +64,28 @@ public class TraceAppTester {
 			nextSeed++;
 		}
 		
-		DummyHost h1 = (DummyHost)s1.getPort(3).getPlugged();
-		DummyHost h2 = (DummyHost)s2.getPort(3).getPlugged();
+		DummyHost h1 = (DummyHost)s1.getPort(4).getPlugged();
+		DummyHost h2 = (DummyHost)s2.getPort(4).getPlugged();
 		
 		h1.sendPingRequest(h2.getIp());
 		Assert.assertEquals("\nSending ping request to " + h2.getIp() + "..."
 				+ "\nPing reply received from: " + h2.getIp(), h1.getMessages());
 		
 		h1.sendTrace("tcp", h2.getMac());
+		Assert.assertTrue(h1.getMessages().contains("Received trace reply"));
+	}
+	
+	@Test
+	public void SmallMeshTest(){
+		DummyNetwork net = generateRandomNetwork(10, "mesh", 100, false);
+		
+		DummyHost h1 = net.randomHost(10);
+		DummyHost h2 = net.randomHost(10);
+		while(h1 == h2)
+			h2 = net.randomHost(1000);
+		
+		h1.sendTrace("tcp", h2.getMac());
+		
 		Assert.assertTrue(h1.getMessages().contains("Received trace reply"));
 	}
 	
@@ -120,21 +134,67 @@ public class TraceAppTester {
 				Wire w = new Wire();
 				w.left = h;
 				h.plug(w);
-				w.right = s.plug(3, w);
+				w.right = s.plug(4, w);
 			}
 		}
 		else if(topo == "star"){
 			// Make 1 switch
 			// Fill in a random number of hosts on random ports
 			int numNodes = rand.nextInt(maxNodes);
-			DummySwitch sw = net.AddSwitch(rand.nextInt(100000), 5, rand.nextInt(100000), rand.nextInt(100000));
+			DummySwitch sw = net.AddSwitch(rand.nextInt(100000), maxNodes+2, rand.nextInt(100000), rand.nextInt(100000));
 			numNodes--;
 			
+			for(int i = 0; i < numNodes; i++){
+				DummyHost h = net.AddHost(rand.nextInt(100000), rand.nextInt(100000));
+				Wire w = new Wire();
+				w.left = h;
+				h.plug(w);
+				w.right = sw.plug(i+2, w);
+			}
 			
+			Wire w = new Wire();
+			w.left = sw.plug(1, w);
+			w.right = net;
+			net.plug(w);
 		}
 		else if(topo == "mesh"){
 			// Generate a random number of switches, connecting each switch to all the others
 			// Generate a random number of hosts and plug them into random switches
+			
+			int numNodes = rand.nextInt(maxNodes);
+			
+			while(numNodes < 4)
+				numNodes++;
+			
+			int numSwitches = rand.nextInt(numNodes);
+			while(numSwitches > (3.0/4)*numNodes)
+				numSwitches--;
+			
+			for(int i = 0; i < numSwitches; i++){
+				switches.add(net.AddSwitch(rand.nextInt(100000), maxNodes, rand.nextInt(100000), rand.nextInt(100000)));
+				
+				for(int j = 0; j < i; j++){
+					Wire w = new Wire();
+					w.left = switches.get(j).plug(w);
+					w.right = switches.get(i).plug(w);
+				}
+				
+				Wire w = new Wire();
+				w.left = net;
+				net.plug(w);
+				w.right = switches.get(i).plug(1, w);
+			}
+			
+			int numHosts = numNodes - numSwitches;
+			
+			for(int i = 0; i < numHosts; i++){
+				DummyHost h = net.AddHost(rand.nextInt(100000), rand.nextInt(100000));
+				DummySwitch toPlug = net.randomSwitch(seed);
+				Wire w = new Wire();
+				w.left = h;
+				h.plug(w);
+				w.right = toPlug.plug(w);
+			}
 		}
 		else{
 			
@@ -143,7 +203,7 @@ public class TraceAppTester {
 		for(DummySwitch s : switches){
 			Wire w = new Wire();
 			w.left = net;
-			w.right = s.plug(4, w);
+			w.right = s.plug(1, w);
 			net.plug(w);
 		}
 		

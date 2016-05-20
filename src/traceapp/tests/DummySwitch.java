@@ -29,6 +29,8 @@ public class DummySwitch implements Comparable<DummySwitch>{
 	
 	private int controllerPort;
 	
+	private int nextPort;
+	
 	/**
 	 * TODO fill-in
 	 * 
@@ -51,6 +53,7 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		flowTable = new ArrayList<Flow>();
 		
 		controllerPort = -1;
+		nextPort = 2;
 	}
 	
 	/**
@@ -113,6 +116,12 @@ public class DummySwitch implements Comparable<DummySwitch>{
 			controllerPort = port;
 		return plug(port, w);
 	}
+	
+	public Port plug(Wire w){
+		Port p = plug(nextPort, w);
+		nextPort++;
+		return p;
+	}
 
 	@Override
 	public int compareTo(DummySwitch sw) {
@@ -159,10 +168,17 @@ public class DummySwitch implements Comparable<DummySwitch>{
 		}
 	}
 	
-	public void packetInWoController(IPacket p, Port in){
+	public void packetInWoController(IPacket p, Port in, long mac){
 		for(Port out : ports){
 			if((in != null && out.getNumber() == in.getNumber()) || out.getNumber() == controllerPort) // Don't send the packet back out the port it came in on. 
 				continue;
+			
+			if(!(out.getPlugged() instanceof DummyHost))
+				continue;
+			
+			if((((DummyHost)out.getPlugged()).getMac() != mac))
+				continue;
+			
 			out.packetOut(p);
 		}
 	}

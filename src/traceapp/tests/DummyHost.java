@@ -79,7 +79,10 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 		
 		p.setTTL((byte)255);
 		p.setType(true);
-		p.setPayload(new TCP());
+		TCP tcp = new TCP();
+		tcp.setDestinationPort(8080);
+		tcp.setSourcePort(8081);
+		p.setPayload(tcp);
 		
 		if(plugged == null) // There's nowhere for the packet to go
 			return p;

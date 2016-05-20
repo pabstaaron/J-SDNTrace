@@ -20,4 +20,9 @@ public class Hop {
 	public long getDpid(){
 		return dpid;
 	}
+	
+	@Override
+	public String toString(){
+		return Long.toString(dpid);
+	}
 }
