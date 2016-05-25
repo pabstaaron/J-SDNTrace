@@ -1,5 +1,7 @@
 package traceapp.core;
 
+import org.projectfloodlight.openflow.protocol.match.Match;
+
 import net.floodlightcontroller.packet.IPacket;
 
 /**
@@ -26,7 +28,7 @@ public interface INetwork {
 	 * @param action
 	 * @param priority
 	 */
-	void AddFlow(long dpid, int inPort, long dstAddress, int ethType, int priority, String action, String proto);
+	void AddFlow(long dpid, Match m, int port);
 	
 	/**
 	 * Used to send a packet out on the specified datapath
@@ -40,7 +42,9 @@ public interface INetwork {
 	 * @param msg
 	 * @param outPort
 	 */
-	void SendPacket(long dpid, IPacket pkt);
+	void SendTracePacket(long dpid, TracePacket pkt);
+
+	Match buildTraceMatch(long dpid);
 
 	/**
 	 * @return The port on any given switch the controller is connected to. Most OF controllers provide

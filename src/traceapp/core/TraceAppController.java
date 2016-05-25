@@ -1,10 +1,14 @@
 package traceapp.core;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.types.IpProtocol;
 
 /**
@@ -42,6 +46,26 @@ public class TraceAppController {
 		debugMessages = "TraceApp initilized....\n";
 	}
 	
+	public void writeMapToFile(){
+		String s = "--TraceApp Map Info--\n";
+		HashMap<Long, HashMap<Long, Integer>> map = netMap.get("tcp");
+		for(Long id : map.keySet()){
+			s += "Switch: " + Long.toString(id) + "\n";
+			for(Long mac : map.get(id).keySet()){
+				s+="\t" + Long.toString(mac) + " : " + Integer.toString(map.get(id).get(mac)) + "\n";
+			}
+		}
+		
+		File f = new File("TraceMap.txt");
+		try {
+			FileWriter write = new FileWriter(f);
+			write.write(s);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Used to notify the App that a new switch has been connected
 	 * 
@@ -67,7 +91,7 @@ public class TraceAppController {
 		}
 		
 		// Push the Trace flow to the new switch
-		network.AddFlow(dpid, -1, -1, TRACE_PACKET, 1000, "controller", null);
+		network.AddFlow(dpid, network.buildTraceMatch(dpid), -1);
 	}
 	
 	/**
@@ -109,11 +133,11 @@ public class TraceAppController {
 			// Trace complete, return to sender
 			long returnSw = searchForSwitch(p.getSource().getLong(), switches);
 			TracePacket reply = p.ConvertToReply();
-			network.SendPacket(returnSw, reply);
+			network.SendTracePacket(returnSw, reply);
 		}
 		else{ // Indirect Attachment
 			// Trace incomplete, send along its way
-			network.SendPacket(dpid, p);
+			network.SendTracePacket(dpid, p);
 		}
 	}
 	
