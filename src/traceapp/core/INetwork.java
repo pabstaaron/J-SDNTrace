@@ -1,6 +1,7 @@
 package traceapp.core;
 
 import org.projectfloodlight.openflow.protocol.match.Match;
+import org.projectfloodlight.openflow.types.OFPort;
 
 import net.floodlightcontroller.packet.IPacket;
 
@@ -28,7 +29,7 @@ public interface INetwork {
 	 * @param action
 	 * @param priority
 	 */
-	void AddFlow(long dpid, Match m, int port);
+	void AddFlow(long dpid, Match m, OFPort port);
 	
 	/**
 	 * Used to send a packet out on the specified datapath

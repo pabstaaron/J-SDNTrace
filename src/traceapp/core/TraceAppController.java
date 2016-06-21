@@ -1,15 +1,18 @@
 package traceapp.core;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.types.IpProtocol;
+import org.projectfloodlight.openflow.types.OFPort;
 
 /**
  * Implements the SDNTrace protocol.
@@ -23,7 +26,7 @@ public class TraceAppController {
 	private INetwork network;
 	
 	// The Ethernet type used to define trace packets
-	private static final int TRACE_PACKET = 0x8820;
+	private static final int TRACE_PACKET = 0x8220;
 	
 	// Used for keeping track of what mac address belongs to what port
 	// keys on protocol (tcp/upd), DPID, and MAC with a port number for a value
@@ -46,7 +49,7 @@ public class TraceAppController {
 		debugMessages = "TraceApp initilized....\n";
 	}
 	
-	public void writeMapToFile(){
+	private void writeMapToFile(){
 		String s = "--TraceApp Map Info--\n";
 		HashMap<Long, HashMap<Long, Integer>> map = netMap.get("tcp");
 		for(Long id : map.keySet()){
@@ -56,10 +59,10 @@ public class TraceAppController {
 			}
 		}
 		
-		File f = new File("TraceMap.txt");
 		try {
-			FileWriter write = new FileWriter(f);
-			write.write(s);
+			FileWriter out = new FileWriter("TraceMap.txt");
+			out.write(s);
+			out.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -69,29 +72,35 @@ public class TraceAppController {
 	/**
 	 * Used to notify the App that a new switch has been connected
 	 * 
-	 * @param dpid
+	 * @param dpid - The id for the switch
+	 * @param mp - The initial state of the ports on the switch
 	 */
-	public void SwitchInfoReceived(Long dpid){
+	public void SwitchInfoReceived(Long dpid, Collection<PortMacPair> mp){
 		// Add the new switch to the map
+		HashMap<Long, Integer> portMap = new HashMap<Long, Integer>();
+		for(PortMacPair p: mp){
+			portMap.put(p.getMac(), p.getPort());
+		}
 		if(netMap.size() == 0){
 			HashMap<Long, HashMap<Long, Integer>> m1 = new HashMap<Long, HashMap<Long, Integer>>();
-			m1.put(dpid, new HashMap<Long, Integer>());
+			m1.put(dpid, portMap);
 			netMap.put("tcp", m1);
 			
 			HashMap<Long, HashMap<Long, Integer>> m2 = new HashMap<Long, HashMap<Long, Integer>>();
-			m2.put(dpid, new HashMap<Long, Integer>());
+			m2.put(dpid, portMap);
 			netMap.put("udp", m2);
 		}
 		else{
 			HashMap<Long, HashMap<Long, Integer>> m1 = netMap.get("tcp");
-			m1.put(dpid, new HashMap<Long, Integer>());
+			m1.put(dpid, portMap);
 			
 			HashMap<Long, HashMap<Long, Integer>> m2 = netMap.get("udp");
-			m2.put(dpid, new HashMap<Long, Integer>());
+			m2.put(dpid, portMap);
 		}
 		
 		// Push the Trace flow to the new switch
-		network.AddFlow(dpid, network.buildTraceMatch(dpid), -1);
+		network.AddFlow(dpid, network.buildTraceMatch(dpid), OFPort.CONTROLLER);
+		writeMapToFile();
 	}
 	
 	/**
@@ -110,8 +119,7 @@ public class TraceAppController {
 		//	port, you know it's definitely not a direct attachment. If there's one node on a port though,
 		//	you don't know for sure it's a direct attachment.
 		// *If you build the map only on port status changes, your map for each switch will only 
-		//  contain the nodes that are directly connected to that switch. However, this introduces
-		//  a problem in figuring out where to send the packet next
+		//  contain the nodes that are directly connected to that switch. 
 		
 		// If it's time to send the reply, look up the requester in the netMap and send the response
 		// 	directly out the switch the requester is connected to, as opposed to sending the packet back
@@ -121,7 +129,7 @@ public class TraceAppController {
 		if(p.getProtocol() == IpProtocol.TCP)
 			switches = netMap.get("tcp");
 		else
-			switches = netMap.get("tcp");
+			switches = netMap.get("udp");
 		
 		HashMap<Long, Integer> sw = switches.get(dpid);
 		
@@ -199,5 +207,28 @@ public class TraceAppController {
 				map.put(mac, portNum);
 			}
 		}
+		writeMapToFile();
+	}
+	
+	public class PortMacPair{
+		private long mac;
+		private int port;
+		
+		public void setMac(long mac){
+			this.mac = mac;
+		}
+		
+		public void setPort(int port){
+			this.port = port;
+		}
+		
+		public long getMac(){
+			return mac;
+		}
+		
+		public int getPort(){
+			return port;
+		}
 	}
 }
+

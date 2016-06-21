@@ -3,6 +3,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/floodlight"/>
-	<classpathentry kind="lib" path="/home/aaron/jpcap/usr/java/packages/lib/ext/jpcap.jar"/>
+	<classpathentry kind="lib" path="/home/aaron/JpcapSource/jpcap-0.7/lib/jpcap.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
