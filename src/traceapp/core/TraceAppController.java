@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.types.IpProtocol;
+import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
 
 /**
@@ -109,46 +110,39 @@ public class TraceAppController {
 	private void HandleTrace(TracePacket p, long dpid){
 		System.out.println("TraceApp received a trace request...");
 		
-		// If the destination is directly attached to the present switch, we're on the last hop
-		// If the destination is not directly attached to the present switch, append the hop info
-		// 	to the data field of the packet, send the packet along to 
-	    // 	the next hop as determined by this object's netMap.
-		
-		// TODO: How do we determine if the destination is directly attached?
-		//	Could look at the number of nodes on each port, if there's more than one node on the destination's
-		//	port, you know it's definitely not a direct attachment. If there's one node on a port though,
-		//	you don't know for sure it's a direct attachment.
-		// *If you build the map only on port status changes, your map for each switch will only 
-		//  contain the nodes that are directly connected to that switch. 
-		
-		// If it's time to send the reply, look up the requester in the netMap and send the response
-		// 	directly out the switch the requester is connected to, as opposed to sending the packet back
-		//	down the chain.
-		
-		HashMap<Long, HashMap<Long, Integer>> switches;
-		if(p.getProtocol() == IpProtocol.TCP)
-			switches = netMap.get("tcp");
-		else
-			switches = netMap.get("udp");
+		HashMap<Long, HashMap<Long, Integer>> switches = netMap.get("tcp");
 		
 		HashMap<Long, Integer> sw = switches.get(dpid);
-		
-		// Append hop to packet
-		Hop h = new Hop(dpid);
-		p.appendHop(h);
-		
-		if(sw.containsKey(p.getDestination().getLong())){ // Direct Attachment
-			// Trace complete, return to sender
-			long returnSw = searchForSwitch(p.getSource().getLong(), switches);
-			TracePacket reply = p.ConvertToReply();
-			network.SendTracePacket(returnSw, reply);
-		}
-		else{ // Indirect Attachment
-			// Trace incomplete, send along its way
-			network.SendTracePacket(dpid, p);
+	
+		/**
+		 * Try to find the switch and port to send the reply out of. If the switch and port are not present in the map,
+		 * Flood the reply out all ports on the switch the request came in on.
+		 * 
+		 * FIXME - This is a thousand miles short of ideal/robust...
+		 */
+		long returnSw = searchForSwitch(p.getSource().getLong(), switches);
+		try{
+			int returnPort = switches.get(returnSw).get(p.getSource());
+			System.out.println("Sending packet out sw: " + Long.toString(returnSw) + " on port: " + Integer.toString(returnPort));
+			sendReply(new Hop(dpid), returnSw, p, OFPort.of(returnPort));
+		}catch(NullPointerException e){
+			System.out.println("Sending packet out all ports on sw: " + Long.toString(dpid));
+			sendReply(new Hop(dpid), dpid, p, OFPort.ALL);
 		}
 	}
 	
+	private void sendReply(Hop h, long dpid, TracePacket request, OFPort p) {
+		TracePacket reply = new TracePacket();
+		reply.setDestination(request.getSource());
+		reply.setSource(MacAddress.NONE);
+		reply.setTTL((byte)255);
+		reply.setProtocol(IpProtocol.TCP);
+		reply.setType(false);
+		reply.appendHop(h);
+		
+		network.SendTracePacket(dpid, reply, p);
+	}
+
 	/**
 	 * Find the dpid that the specified mac is on.
 	 * 

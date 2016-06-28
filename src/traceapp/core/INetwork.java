@@ -43,7 +43,7 @@ public interface INetwork {
 	 * @param msg
 	 * @param outPort
 	 */
-	void SendTracePacket(long dpid, TracePacket pkt);
+	void SendTracePacket(long dpid, TracePacket pkt, OFPort p);
 
 	Match buildTraceMatch(long dpid);
 

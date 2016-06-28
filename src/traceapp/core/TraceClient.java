@@ -61,7 +61,7 @@ public class TraceClient {
 				}
 			}
 			
-			JpcapCaptor captor = JpcapCaptor.openDevice(ji, 65535, false, 5000);
+			JpcapCaptor captor = JpcapCaptor.openDevice(ji, 65535, false, 10000);
 			JpcapSender sender = captor.getJpcapSenderInstance();
 			jpcap.packet.Packet jTrace = translateToPcap(toSend);
 			
@@ -85,7 +85,7 @@ public class TraceClient {
 		
 		eth.dst_mac = toSend.getDestination().getBytes();
 		eth.src_mac = toSend.getSource().getBytes();
-		eth.frametype = (short)toSend.TRACE_TYPE; // XXX
+		eth.frametype = (short)toSend.TRACE_REQUEST; // XXX
 		
 		pkt.datalink = eth;
 		pkt.len = toSend.serialize().length;
@@ -116,12 +116,19 @@ public class TraceClient {
 		
 		@Override
 		public void receivePacket(Packet p) {
-			// TODO Auto-generated method stub
-			if(p.datalink instanceof EthernetPacket && ((EthernetPacket)p.datalink).frametype == 0x8220){ // p is a trace packet
+			System.out.println("Received a packet!\n\tData: " + Arrays.toString(p.data));
+			System.out.println(((EthernetPacket)p.datalink).frametype);
+			System.out.println((short)0x8220);
+			System.out.println();
+			
+			// FIXME - We're overflowing frametype. We need to fine a way to pull it out as an int.
+			//	Less attractive option: Cast ethType to a short
+			if(p.datalink instanceof EthernetPacket && ((EthernetPacket)p.datalink).frametype == (short)0x8220){ // p is a trace packet
+				System.out.println("Trace response received");
 				TracePacket response = new TracePacket();
 				try {
 					response.deserialize(p.data, 0, p.data.length);
-					System.out.println("Trace response received");
+					System.out.println(response);
 				} catch (PacketParsingException e) {
 					e.printStackTrace();
 				}

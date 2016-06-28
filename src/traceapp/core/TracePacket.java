@@ -35,7 +35,9 @@ public class TracePacket extends BasePacket{
     private byte ttl;
     private List<Hop> hops;
     
-    protected static final int TRACE_TYPE = 0x8220;
+    protected static final int TRACE_REQUEST = 0x8220;
+    
+    protected static final int TRACE_REPLY = 0x8221;
     
     /**
      * Indicates whether the packet is a request a reply. True for request, false for reply.
@@ -114,19 +116,11 @@ public class TracePacket extends BasePacket{
 	public byte[] serialize() {
 		// TODO Auto-generated method stub
 		
-		int length = 24;
+		int length = 21;
 		
 		if(hops != null)
 			length += (hops.size() * 8);
 		
-//		byte[] payloadData = null;
-//        if (payload != null) {
-//            payload.setParent(this);
-//            payloadData = this.payload.serialize();
-//            length += payloadData.length + 2;
-//        }
-		
-        
         byte[] data = new byte[length];
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.put((byte)length);
@@ -141,7 +135,7 @@ public class TracePacket extends BasePacket{
         	bb.put((byte)0);
        
         // Need to transmit the number of hop entries as well
-	    bb.putInt(hops.size()); // 4 bytes
+	    bb.put((byte)hops.size()); // 4 bytes
 	        
 	    for(Hop h : hops){
 	        bb.putLong(h.getDpid());
@@ -155,7 +149,7 @@ public class TracePacket extends BasePacket{
 		// TODO Auto-generated method stub
 		ByteBuffer bb = ByteBuffer.wrap(data, offset, length);
 		
-		bb.get();
+		int len = bb.get(); // XXX - Length is used elsewhere in the program. It's only stored in a variable here for debugging.
 		this.destinationMAC = MacAddress.of(bb.getLong());
 		this.sourceMAC = MacAddress.of(bb.getLong());
 		
@@ -168,7 +162,7 @@ public class TracePacket extends BasePacket{
 		else
 			this.request = false;
 		
-		int hopLength = bb.getInt();
+		byte hopLength = bb.get();
 		
 		for(int i = 0; i < hopLength; i++){
 			long dpid = bb.getLong();
@@ -208,7 +202,7 @@ public class TracePacket extends BasePacket{
 	public TracePacket ConvertToReply() {
 		// TODO Auto-generated method stub
 		if(request == false)
-			return null; // FIXME - Cause of NullPointer here!
+			return null; 
 		
 		request = false;
 		MacAddress temp = sourceMAC;
@@ -230,6 +224,10 @@ public class TracePacket extends BasePacket{
 			}
 		
 		return ret;
+	}
+
+	public boolean isRequest() {
+		return request;
 	}
 
 }
