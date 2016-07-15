@@ -120,7 +120,6 @@ public class TraceAppController {
 		 * 
 		 * FIXME - This is a thousand miles short of ideal/robust...
 		 */
-		// FIXME - At the time of the trace, the map never seems to be complete, causing the trace to be incomplete...
 		long returnSw = searchForSwitch(p.getSource().getLong(), switches);
 		try{
 			int returnPort = switches.get(returnSw).get(p.getSource());
