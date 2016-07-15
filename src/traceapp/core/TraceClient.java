@@ -116,10 +116,10 @@ public class TraceClient {
 		
 		@Override
 		public void receivePacket(Packet p) {
-			System.out.println("Received a packet!\n\tData: " + Arrays.toString(p.data));
-			System.out.println(((EthernetPacket)p.datalink).frametype);
-			System.out.println((short)0x8220);
-			System.out.println();
+//			System.out.println("Received a packet!\n\tData: " + Arrays.toString(p.data));
+//			System.out.println(((EthernetPacket)p.datalink).frametype);
+//			System.out.println((short)0x8220);
+//			System.out.println();
 			
 			// FIXME - We're overflowing frametype. We need to fine a way to pull it out as an int.
 			//	Less attractive option: Cast ethType to a short

@@ -120,6 +120,7 @@ public class TraceAppController {
 		 * 
 		 * FIXME - This is a thousand miles short of ideal/robust...
 		 */
+		// FIXME - At the time of the trace, the map never seems to be complete, causing the trace to be incomplete...
 		long returnSw = searchForSwitch(p.getSource().getLong(), switches);
 		try{
 			int returnPort = switches.get(returnSw).get(p.getSource());
@@ -127,14 +128,14 @@ public class TraceAppController {
 			sendReply(new Hop(dpid), returnSw, p, OFPort.of(returnPort));
 		}catch(NullPointerException e){
 			System.out.println("Sending packet out all ports on sw: " + Long.toString(dpid));
-			sendReply(new Hop(dpid), dpid, p, OFPort.ALL);
+			sendReply(new Hop(dpid), dpid, p, OFPort.FLOOD);
 		}
 	}
 	
 	private void sendReply(Hop h, long dpid, TracePacket request, OFPort p) {
 		TracePacket reply = new TracePacket();
 		reply.setDestination(request.getSource());
-		reply.setSource(MacAddress.NONE);
+		reply.setSource(request.getDestination());
 		reply.setTTL((byte)255);
 		reply.setProtocol(IpProtocol.TCP);
 		reply.setType(false);

@@ -216,7 +216,7 @@ public class TracePacket extends BasePacket{
 	public String toString(){
 		String ret = "Destination: " + destinationMAC.toString();
 		ret += "\n Source: " + sourceMAC.toString();
-		ret += "\nHops:";
+		ret += "\nSwitch ID: ";
 		
 		if(hops != null)
 			for(Hop h : hops){
