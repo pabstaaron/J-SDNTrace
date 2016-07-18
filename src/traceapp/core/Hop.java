@@ -23,6 +23,6 @@ public class Hop {
 	
 	@Override
 	public String toString(){
-		return Long.toString(dpid);
+		return Long.toString(dpid); // TODO - Print as a hex string
 	}
 }

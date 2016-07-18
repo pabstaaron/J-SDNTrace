@@ -18,6 +18,8 @@ import org.projectfloodlight.openflow.types.OFPort;
 /**
  * Implements the SDNTrace protocol.
  * 
+ * This class should be able to be integrated into most any OpenFlow controller.
+ * 
  * @author Aaron Pabst
  */
 public class TraceAppController {
@@ -31,11 +33,8 @@ public class TraceAppController {
 	
 	// Used for keeping track of what mac address belongs to what port
 	// keys on protocol (tcp/upd), DPID, and MAC with a port number for a value
-		// TODO What if MAC is on multiple ports on the same DPID?
-		// TODO Do we really need two maps for TCP and UDP?
 	private HashMap<String, HashMap<Long, HashMap<Long, Integer>>> netMap;
 	
-	private String debugMessages; // Used to store and retrieve debugging info.
 	
 	/**
 	 * Starts up a new instance of TraceApp to control the specified INetwork.
@@ -46,10 +45,11 @@ public class TraceAppController {
 		this.network = network;
 		
 		netMap = new HashMap<String, HashMap<Long, HashMap<Long, Integer>>>();
-		
-		debugMessages = "TraceApp initilized....\n";
 	}
 	
+	/**
+	 * Writes the present network map out to a text file.
+	 */
 	private void writeMapToFile(){
 		String s = "--TraceApp Map Info--\n";
 		HashMap<Long, HashMap<Long, Integer>> map = netMap.get("tcp");
@@ -131,14 +131,23 @@ public class TraceAppController {
 		}
 	}
 	
+	/**
+	 * Converts a request packet into a reply and instructs the network to send the reply
+	 * back to the originator.
+	 * 
+	 * @param h
+	 * @param dpid
+	 * @param request
+	 * @param p
+	 */
 	private void sendReply(Hop h, long dpid, TracePacket request, OFPort p) {
 		TracePacket reply = new TracePacket();
 		reply.setDestination(request.getSource());
 		reply.setSource(request.getDestination());
-		reply.setTTL((byte)255);
-		reply.setProtocol(IpProtocol.TCP);
-		reply.setType(false);
-		reply.appendHop(h);
+		reply.setMaxHops((byte)255);
+		reply.setProtocol(IpProtocol.TCP); // The protocol field is still a part of the trace packet, but it's meaningless at this point.
+		reply.setType(false); // Toggle packet type to request
+		reply.appendHop(h); 
 		
 		network.SendTracePacket(dpid, reply, p);
 	}
@@ -204,6 +213,9 @@ public class TraceAppController {
 		writeMapToFile();
 	}
 	
+	/**
+	 * Wrapper class for associating ports with mac addresses.
+	 */
 	public class PortMacPair{
 		private long mac;
 		private int port;

@@ -77,7 +77,7 @@ public class DummyHost implements INetNode, Comparable<DummyHost>{
 		else
 			p.setProtocol(IpProtocol.UDP);
 		
-		p.setTTL((byte)255);
+		p.setMaxHops((byte)255);
 		p.setType(true);
 		TCP tcp = new TCP();
 		tcp.setDestinationPort(8080);

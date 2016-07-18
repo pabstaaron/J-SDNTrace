@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.types.OFPort;
 
 import net.floodlightcontroller.packet.BasePacket;
 import net.floodlightcontroller.packet.IPacket;
@@ -16,28 +17,30 @@ import net.floodlightcontroller.packet.TCP;
 import net.floodlightcontroller.packet.UDP;
 import traceapp.core.Hop;
 
+/**
+ * Represents a deserialized trace packet.
+ * 
+ * TODO - Remove protocol variable
+ * TODO - Change the hop field from a list of hops to a single object
+ * TODO - Add a field for a timestamp
+ * TODO - Add a field for ingress port
+ * 
+ * @author Aaron Pabst
+ */
 public class TracePacket extends BasePacket{
 
-	public static Map<IpProtocol, Class<? extends IPacket>> protocolClassMap;
-
-    static {
-        protocolClassMap = new HashMap<IpProtocol, Class<? extends IPacket>>();
-        protocolClassMap.put(IpProtocol.TCP, TCP.class);
-        protocolClassMap.put(IpProtocol.UDP, UDP.class);
-    }
-    
     private MacAddress destinationMAC; // 64 bits = 8 bytes
     private MacAddress sourceMAC; // 64 bits = 8 bytes
     private IpProtocol protocol; // 1 byte
-    //private IPacket payload; // TCP or UDP payload
     private byte version;
-    private byte headerLength;
-    private byte ttl;
+    private byte maxHops;
     private List<Hop> hops;
-    
+    private OFPort ingress;
+
+    /**
+     * The ethernet type for trace packets
+     */
     protected static final int TRACE_REQUEST = 0x8220;
-    
-    protected static final int TRACE_REPLY = 0x8221;
     
     /**
      * Indicates whether the packet is a request a reply. True for request, false for reply.
@@ -64,12 +67,8 @@ public class TracePacket extends BasePacket{
     	sourceMAC = srcMac;
     }
     
-    public void setTTL(byte ttl){
-    	this.ttl = ttl;
-    }
-    
-    public void setHeaderLength(byte headerLength){
-    	this.headerLength = headerLength;
+    public void setMaxHops(byte ttl){
+    	this.maxHops = ttl;
     }
     
     public void setType(boolean request){
@@ -88,13 +87,9 @@ public class TracePacket extends BasePacket{
     	return sourceMAC;
     }
     
-    public byte getTTL(){
-    	return ttl;
+    public byte getMaxHops(){
+    	return maxHops;
     }
-    
-//    public byte getHeaderLength(){
-//    	return headerLengthpayload;
-//    }
     
     public boolean getType(){
     	return request;
@@ -112,12 +107,14 @@ public class TracePacket extends BasePacket{
     	return version;
     }
     
+    /**
+     * Convert this TracePacket into raw data that is ready to be sent across the network.
+     */
 	@Override
 	public byte[] serialize() {
-		// TODO Auto-generated method stub
 		
+		// Compute the length of the packet in bytes
 		int length = 21;
-		
 		if(hops != null)
 			length += (hops.size() * 8);
 		
@@ -127,7 +124,7 @@ public class TracePacket extends BasePacket{
         bb.putLong(destinationMAC.getLong()); // 8 bytes
         bb.putLong(sourceMAC.getLong()); // 8 bytes
         bb.put(version); // 1 byte
-        bb.put(ttl); // 1 byte
+        bb.put(maxHops); // 1 byte
         
         if(request) // 1 byte
         	bb.put((byte)1);
@@ -144,17 +141,25 @@ public class TracePacket extends BasePacket{
 		return data;
 	}
 
+	/**
+	 * Read a raw byte array into this TracePacket object, if possible.
+	 * 
+	 * @param data - The raw data
+	 * @param offset - index to start reading at
+	 * @param length - How far to read into the array
+	 * 
+	 * @throws PacketParsingException if the specified data is not a valid trace packet.
+	 */
 	@Override
 	public IPacket deserialize(byte[] data, int offset, int length) throws PacketParsingException {
-		// TODO Auto-generated method stub
 		ByteBuffer bb = ByteBuffer.wrap(data, offset, length);
 		
-		int len = bb.get(); // XXX - Length is used elsewhere in the program. It's only stored in a variable here for debugging.
+		int len = bb.get(); // Length is used elsewhere in the program. It's only stored in a variable here for debugging purposes.
 		this.destinationMAC = MacAddress.of(bb.getLong());
 		this.sourceMAC = MacAddress.of(bb.getLong());
 		
 		this.version = bb.get();
-		this.ttl = bb.get();
+		this.maxHops = bb.get();
 		
 		byte req = bb.get();
 		if(req == (byte)1)
@@ -172,6 +177,12 @@ public class TracePacket extends BasePacket{
 		return this;
 	}
 
+	/**
+	 * Determines if the specified trace packet is equal to this object.
+	 * 
+	 * @param p2
+	 * @return
+	 */
 	public boolean equals(TracePacket p2) {
 		if(!destinationMAC.equals(p2.getDestination()))
 			return false;
@@ -181,10 +192,8 @@ public class TracePacket extends BasePacket{
 			return false;
 		else if(version != p2.getVersion())
 			return false;
-		else if(ttl != p2.getTTL())
+		else if(maxHops != p2.getMaxHops())
 			return false;
-//		else if(!payload.equals(p2.getPayload()))
-//			return false;
 		List<Hop> hops1 = p2.getHops();
 		int i = 0;
 		for(Hop h : hops){
@@ -200,7 +209,6 @@ public class TracePacket extends BasePacket{
 	 * @return
 	 */
 	public TracePacket ConvertToReply() {
-		// TODO Auto-generated method stub
 		if(request == false)
 			return null; 
 		
@@ -220,7 +228,7 @@ public class TracePacket extends BasePacket{
 		
 		if(hops != null)
 			for(Hop h : hops){
-				ret += h.toString() + "\n";
+				ret += h.toString() + "\n"; 
 			}
 		
 		return ret;

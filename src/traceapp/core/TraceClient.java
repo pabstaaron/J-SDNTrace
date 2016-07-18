@@ -13,17 +13,18 @@ import jpcap.packet.Packet;
 import net.floodlightcontroller.packet.PacketParsingException;
 import net.floodlightcontroller.packet.TCP;
 
+/**
+ * 
+ * @author 
+ */
 public class TraceClient {
 
 	private static final int TRACE_PORT = 6654;
 	
-//	static{
-//		System.loadLibrary("libjpcap.so");
-//	}
-	
 	/**
-	 * Arg0 = destination mac address
+	 * arg0 = destination mac address, TODO - Have mac address be inputed as a hex string and convert it to a long from there
 	 * arg1 = interface
+	 * arg3 = timeout in ms
 	 * 
 	 * @param args
 	 */
@@ -43,7 +44,7 @@ public class TraceClient {
 			tcp.setSourcePort(TRACE_PORT);
 			java.net.NetworkInterface ni = java.net.NetworkInterface.getByName(args[1]);
 			toSend.setSource(MacAddress.of(ni.getHardwareAddress())); 
-			toSend.setTTL((byte)255);
+			toSend.setMaxHops((byte)255);
 			toSend.setType(true);
 			
 //			byte[] data = toSend.serialize();
@@ -85,26 +86,12 @@ public class TraceClient {
 		
 		eth.dst_mac = toSend.getDestination().getBytes();
 		eth.src_mac = toSend.getSource().getBytes();
-		eth.frametype = (short)toSend.TRACE_REQUEST; // XXX
+		eth.frametype = (short)TracePacket.TRACE_REQUEST; // XXX
 		
 		pkt.datalink = eth;
 		pkt.len = toSend.serialize().length;
 		
 		return pkt;
-	}
-
-	private static byte[] ipToBytes(String ipAddress) {
-		byte[] raw = new byte[4];
-		String[] split = ipAddress.split("[.]+");
-		
-		if(split.length != 4)
-			throw new IllegalArgumentException();
-		
-		for(int i = 0; i < 4; i++){
-			raw[i] = (byte)Integer.parseInt(split[i]);
-		}
-		
-		return raw;
 	}
 
 	/**
@@ -121,10 +108,9 @@ public class TraceClient {
 //			System.out.println((short)0x8220);
 //			System.out.println();
 			
-			// FIXME - We're overflowing frametype. We need to fine a way to pull it out as an int.
+			// FIXME - We're overflowing frametype. We need to find a way to pull it out as an int.
 			//	Less attractive option: Cast ethType to a short
-			if(p.datalink instanceof EthernetPacket && ((EthernetPacket)p.datalink).frametype == (short)0x8220){ // p is a trace packet
-				System.out.println("Trace response received");
+			if(p.datalink instanceof EthernetPacket && ((EthernetPacket)p.datalink).frametype == (short)0x8220){ //if p is a trace packet
 				TracePacket response = new TracePacket();
 				try {
 					response.deserialize(p.data, 0, p.data.length);

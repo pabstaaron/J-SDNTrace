@@ -331,7 +331,7 @@ public class TraceAppTester {
 		p.setDestination(MacAddress.of(1));
 		p.setSource(MacAddress.of(2));
 		p.setProtocol(IpProtocol.TCP);
-		p.setTTL((byte)255);
+		p.setMaxHops((byte)255);
 		p.setType(true);
 		TCP tcp = new TCP();
 		tcp.setSourcePort(TransportPort.of(6000));
