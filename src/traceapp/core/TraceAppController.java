@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -107,7 +108,7 @@ public class TraceAppController {
 	/**
 	 * Control the trace process according to the SDNTrace specification.
 	 */
-	private void HandleTrace(TracePacket p, long dpid){
+	private void HandleTrace(TracePacket p, long dpid, OFPort ingress){
 		System.out.println("TraceApp received a trace request...");
 		
 		HashMap<Long, HashMap<Long, Integer>> switches = netMap.get("tcp");
@@ -121,13 +122,19 @@ public class TraceAppController {
 		 * FIXME - This is a thousand miles short of ideal/robust...
 		 */
 		long returnSw = searchForSwitch(p.getSource().getLong(), switches);
+		
+		
+		
+		Hop h = new Hop(dpid);
+		h.setTimestamp(new Date());
+		h.setIngress(ingress);
 		try{
 			int returnPort = switches.get(returnSw).get(p.getSource());
 			System.out.println("Sending packet out sw: " + Long.toString(returnSw) + " on port: " + Integer.toString(returnPort));
-			sendReply(new Hop(dpid), returnSw, p, OFPort.of(returnPort));
+			sendReply(h, returnSw, p, OFPort.of(returnPort));
 		}catch(NullPointerException e){
 			System.out.println("Sending packet out all ports on sw: " + Long.toString(dpid));
-			sendReply(new Hop(dpid), dpid, p, OFPort.FLOOD);
+			sendReply(h, dpid, p, OFPort.FLOOD);
 		}
 	}
 	
@@ -173,15 +180,15 @@ public class TraceAppController {
 	
 	/**
 	 * Used to notify this object of a packet in. 
-	 * Should be called on ALL packetIn messages.
+	 * TODO - Should be called on ALL packetIn messages.
 	 * 
 	 * @param pkt - A network packet as defined in traceapp.core
 	 * @param dpid - The DPID of the switch the message was generated on
-	 * @param port - The port the packet came in on. For learning purposes.
+	 * @param ingress - The port the packet came in on. 
 	 */
-	public void PacketIn(TracePacket pkt, long dpid){
+	public void PacketIn(TracePacket pkt, long dpid, OFPort ingress){
 		System.out.println("TraceApp received a packet: " + pkt);
-		HandleTrace(pkt, dpid);
+		HandleTrace(pkt, dpid, ingress);
 	}
 	
 	/**

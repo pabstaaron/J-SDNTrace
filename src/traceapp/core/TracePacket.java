@@ -1,6 +1,7 @@
 package traceapp.core;
 
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +36,6 @@ public class TracePacket extends BasePacket{
     private byte version;
     private byte maxHops;
     private List<Hop> hops;
-    private OFPort ingress;
 
     /**
      * The ethernet type for trace packets
@@ -116,7 +116,7 @@ public class TracePacket extends BasePacket{
 		// Compute the length of the packet in bytes
 		int length = 21;
 		if(hops != null)
-			length += (hops.size() * 8);
+			length += (hops.size() * 20);
 		
         byte[] data = new byte[length];
         ByteBuffer bb = ByteBuffer.wrap(data);
@@ -135,7 +135,17 @@ public class TracePacket extends BasePacket{
 	    bb.put((byte)hops.size()); // 4 bytes
 	        
 	    for(Hop h : hops){
-	        bb.putLong(h.getDpid());
+	        bb.putLong(h.getDpid()); // 8 bytes
+	        
+	        if(h.getIngress() != null) // 4 bytes
+	        	bb.putInt(h.getIngress().getPortNumber());
+	        else
+	        	bb.putInt(0);
+	        
+	        if(h.getTimestamp() != null) // 8 bytes
+	        	bb.putLong(h.getTimestamp().getTime());
+	        else
+	        	bb.putLong(0);
 	    }
       
 		return data;
@@ -171,7 +181,13 @@ public class TracePacket extends BasePacket{
 		
 		for(int i = 0; i < hopLength; i++){
 			long dpid = bb.getLong();
-			hops.add(new Hop(dpid));
+			int portNum = bb.getInt();
+			long time = bb.getLong();
+			
+			Hop h = new Hop(dpid);
+			h.setTimestamp(new Date(time));
+			h.setIngress(OFPort.of(portNum));
+			hops.add(h);
 		}
 		
 		return this;
@@ -222,9 +238,10 @@ public class TracePacket extends BasePacket{
 	
 	@Override
 	public String toString(){
-		String ret = "Destination: " + destinationMAC.toString();
-		ret += "\n Source: " + sourceMAC.toString();
-		ret += "\nSwitch ID: ";
+//		String ret = "Destination: " + destinationMAC.toString();
+//		ret += "\n Source: " + sourceMAC.toString();
+//		ret += "\nSwitch ID: ";
+		String ret = "";
 		
 		if(hops != null)
 			for(Hop h : hops){

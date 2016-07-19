@@ -24,7 +24,7 @@ public class TraceClient {
 	/**
 	 * arg0 = destination mac address, TODO - Have mac address be inputed as a hex string and convert it to a long from there
 	 * arg1 = interface
-	 * arg3 = timeout in ms
+	 * arg2 = timeout in ms
 	 * 
 	 * @param args
 	 */
@@ -62,11 +62,17 @@ public class TraceClient {
 				}
 			}
 			
-			JpcapCaptor captor = JpcapCaptor.openDevice(ji, 65535, false, 10000);
+			int timeout;
+			if(args.length < 3)
+				timeout = 10000;
+			else
+				timeout = Integer.parseInt(args[2]);
+			
+			JpcapCaptor captor = JpcapCaptor.openDevice(ji, 65535, false, timeout);
 			JpcapSender sender = captor.getJpcapSenderInstance();
 			jpcap.packet.Packet jTrace = translateToPcap(toSend);
 			
-			System.out.println(Arrays.toString(jTrace.data));
+//			System.out.println(Arrays.toString(jTrace.data));
 			sender.sendPacket(jTrace);
 			System.out.println("Torpedoes away!");
 			
