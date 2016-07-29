@@ -16,6 +16,8 @@ import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
 
+import net.floodlightcontroller.packet.PacketParsingException;
+
 /**
  * Implements the SDNTrace protocol.
  * 
@@ -186,9 +188,18 @@ public class TraceAppController {
 	 * @param dpid - The DPID of the switch the message was generated on
 	 * @param ingress - The port the packet came in on. 
 	 */
-	public void PacketIn(TracePacket pkt, long dpid, OFPort ingress){
-		System.out.println("TraceApp received a packet: " + pkt);
-		HandleTrace(pkt, dpid, ingress);
+	public void PacketIn(byte[] data, long dpid, OFPort ingress){
+//		System.out.println("TraceApp received a packet: " + pkt);
+//		HandleTrace(pkt, dpid, ingress);
+		
+		TracePacket pkt = new TracePacket();
+		
+		try{
+			pkt.deserialize(data, 14, data[14]);
+			HandleTrace(pkt, dpid, ingress);
+		}catch(Exception e){
+			
+		}
 	}
 	
 	/**

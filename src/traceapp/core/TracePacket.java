@@ -40,7 +40,7 @@ public class TracePacket extends BasePacket{
     /**
      * The ethernet type for trace packets
      */
-    protected static final int TRACE_REQUEST = 0x8220;
+    public static final int TRACE_REQUEST = 0x8220;
     
     /**
      * Indicates whether the packet is a request a reply. True for request, false for reply.
