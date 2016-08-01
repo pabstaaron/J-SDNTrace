@@ -37,7 +37,12 @@ is able to get at the packet before the rest of the controller is allowed to dea
 Step 6: Install mininet.
      sudo apt-get install mininet
 
-Step 7: Verify Installation by first starting the controller inside eclipse. After its running without error,
+Step 7: Install Jpcap. See this link for more information:
+	http://jpcap.gitspot.com/install.html
+
+	*We will have detailed instructions on how to do this in the near future.
+
+Step 8: Verify Installation by first starting the controller inside eclipse. After its running without error,
 run the following command on a seperate command line:
     sudo mn --topo=linear,3 --mac --controller=remote,ip=0.0.0.0,port=6653
 
