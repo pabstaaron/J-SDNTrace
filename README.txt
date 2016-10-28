@@ -8,10 +8,10 @@ controllers.
 Presently, the application only records the switch DPID for each hop in
 the probe packet's path. However, ingress/egress port, switch IP address,
 switch MAC address, etc... will be added to the information recorded in the
-near future.
+future.
 
 To report a problem or suggest a new feature, email Joe Breen at joe.breen@utah.edu
-or Aaron Pabst at pabstaaron@gmail.com.
+or Aaron Pabst at aaron.pabst@utah.edu.
 
 --Installation--
 
@@ -20,7 +20,7 @@ Step 1: Download and install Eclipse.
 
 Step 2: Download and install the Floodlight controller. Information on installing
 Floodlight can be found at https://floodlight.atlassian.net/wiki/display/floodlightcontroller/Installation+Guide
-	   *You should be familiar with floodlight before trying to install this package
+	   *You should be familiar with Floodlight before trying to install this package
 
 Step 3: Clone the J-SDNTrace repository.
      git clone https://github.com/pabstaaron/J-SDNTrace

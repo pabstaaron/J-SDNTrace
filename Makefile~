@@ -1,0 +1,34 @@
+# Define compiler for building JSDNTrace and JPcap
+JFLAGS = -g -cp
+JC = javac
+
+# Define C compiler for building libpcap
+CC = g++
+
+.SUFFIXES: .java .class
+
+# Define where the floodlight logging objects are 
+FLOODLIGHT_SLF4J = 
+
+# Define where the floodlight types are
+FLOODLIGHT_TYPES = ~/floodlight/lib/openflowj-0.9.0-SNAPSHOT.jar
+
+FLOODLIGHT_PACKET = $(shell find ~/floodlight/src/main/java/net/floodlightcontroller/packet -type f -name '*.java')
+
+CLASSES = \
+	$(FLOODLIGHT_PACKET) \
+	src/traceapp/core/TracePacket.java \
+	src/traceapp/core/JpcapTracePacket.java \
+	src/traceapp/core/TraceClient.java
+
+classes: $(CLASSES:.java=.class)
+
+.java.class:
+	$(JC) $(JFlags) $(FLOODLIGHT_TYPES) $(CLASSES)
+
+default: classes
+
+
+
+
+
