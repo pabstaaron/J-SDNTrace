@@ -47,7 +47,9 @@ java_source = \
 	src/traceapp/core/JpcapTracePacket.java \
 	src/traceapp/core/TraceClient.java
 
-classes: $(java_source:.java=.class)
+.PHONY: classpath
+classpath:
+        @echo "export CLASSPATH='$(CLASSPATH)'"
 
 # Compile all the necessary java source into class files
 .java.class:
@@ -101,4 +103,27 @@ define make-jar
         $$(call add-manifest, $$@, $$($1_name), $$($1_manifest))
 endef
 
+# $(call build-classpath, variable-list)
+define build-classpath
+$(strip                                          \
+  $(patsubst %:,%,                               \
+    $(subst : ,:,                                \
+      $(strip                                    \
+        $(foreach c,$1,$(call get-file,$c):)))))
+endef
 
+# $(call get-file, variable-name)
+define get-file
+  $(strip                                       \
+    $($1)                                       \
+    $(if $(call file-exists-eval,$1),,          \
+      $(warning The file referenced by variable \
+                '$1' ($($1)) cannot be found)))
+endef
+
+# $(call file-exists-eval, variable-name)
+define file-exists-eval
+  $(strip                                        \
+    $(if $($1),,$(warning '$1' has no value))    \
+    $(wildcard $($1)))
+endef
