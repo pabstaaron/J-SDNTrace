@@ -7,7 +7,7 @@ CC = g++
 
 # Define UNIX Tools
 AWK = awk
-FIND = /bin/find
+FIND = find
 MKDIR = mkdir -p
 RM = rm -rf
 SHELL = /bin/bash
@@ -18,11 +18,11 @@ CLASS_DIR = bin/
 .SUFFIXES: .java .class
 
 # Define where the floodlight logging objects are.
-SLF4J = /home/aaron/floodlight/lib/slf4j-api-1.6.4.jar
+SLF4J = /home/aaron/eclipseWorkspace/floodlight/lib/slf4j-api-1.6.4.jar
 
 # Define where the floodlight types are
 # TODO: How to I properly point to a JAR?
-FLOODLIGHT_TYPES = /home/aaron/floodlight/lib/openflowj-0.9.0-SNAPSHOT.jar
+FLOODLIGHT_TYPES = /home/aaron/eclipseWorkspace/floodlight/lib/openflowj-3.0.0-SNAPSHOT.jar
 
 JPCAP = jpcap/usr/java/packages/lib/ext/jpcap.jar
 
@@ -38,14 +38,16 @@ TMP_JAR_DIR       = $(call make-temp-dir)
 TMP_MANIFEST      = $(TMP_JAR_DIR)/manifest.m
 VERSION_NUMBER = 1.0
 
-FLOODLIGHT_PACKET = $(shell find ~/floodlight/src/main/java/net/floodlightcontroller/packet -type f -name '*.java')
+FLOODLIGHT_PACKET = $(shell $(FIND) ~/eclipseWorkspace/floodlight/src/main/java/net/floodlightcontroller/packet -type f -name '*.java')
+
+CORE_FOLDER = src/traceapp/src/main/java/core
 
 java_source = \
 	$(FLOODLIGHT_PACKET) \
-	src/traceapp/core/Hop.java \
-	src/traceapp/core/TracePacket.java \
-	src/traceapp/core/JpcapTracePacket.java \
-	src/traceapp/core/TraceClient.java
+	$(CORE_FOLDER)/Hop.java \
+	$(CORE_FOLDER)/TracePacket.java \
+	$(CORE_FOLDER)/JpcapTracePacket.java \
+	$(CORE_FOLDER)/TraceClient.java
 
 classes: $(java_source:.java=.class)
 
@@ -62,6 +64,8 @@ $(OUTPUT_JAR):
 all: .java.class .PHONY
 
 default: all
+
+rebuild: clean all
 
 clean: 
 	rm bin/traceapp/core/Hop.class

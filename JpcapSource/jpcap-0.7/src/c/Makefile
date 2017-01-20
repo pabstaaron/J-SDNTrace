@@ -3,7 +3,7 @@
 
 # You should set JAVA_HOME before running 'make'
 # Or, you can manually change the following line, e.g., 'JAVA_DIR = /usr/java/latest'
-JAVA_DIR = /usr/lib/jvm/java-7-openjdk-amd64
+JAVA_DIR = /usr/lib/jvm/java-8-openjdk-amd64
 
 JNI_INCLUDE = $(JAVA_DIR)/include
 
@@ -12,7 +12,7 @@ PLATFORM = $(shell "uname")
 
 ifeq ($(PLATFORM), Linux)
     JNI_INCLUDE2 = $(JAVA_DIR)/include/linux
-    COMPILE_OPTION = -shared -L.
+    COMPILE_OPTION = -shared -L -fPIC.
     SUFFIX = .so
 else
 ifeq ($(PLATFORM), FreeBSD)
@@ -35,7 +35,7 @@ endif
 endif
 
 # Specify where pcap.h is
-PCAP_INCLUDE = /home/aaron/libpcap/libpcap-1.7.4
+PCAP_INCLUDE = /home/aaron/eclipseWorkspace/J-SDNTrace/JpcapSource/jpcap-0.7/src/c/win32/WpdPack/Include/
 #PCAP_INCLUDE = /usr/include/pcap
 
 #CC = cl
@@ -46,7 +46,7 @@ all: libjpcap.so
 libjpcap.so: JpcapCaptor.c JpcapSender.c JpcapWriter.c\
              packet_arp.c packet_datalink.c packet_icmp.c packet_ip.c\
              packet_ipv6.c packet_tcp.c packet_udp.c 
-		$(CC) $(COMPILE_OPTION) -I$(JNI_INCLUDE) -I$(JNI_INCLUDE2)\
+		$(CC) $(COMPILE_OPTION) -fPIC -I$(JNI_INCLUDE) -I$(JNI_INCLUDE2)\
 		 -I$(PCAP_INCLUDE)\
 		JpcapCaptor.c JpcapSender.c JpcapWriter.c\
           packet_arp.c packet_datalink.c packet_icmp.c packet_ip.c\

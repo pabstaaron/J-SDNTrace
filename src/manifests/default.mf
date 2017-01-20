@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Created-By: Aaron Pabst (CHPC)
-Main-Class: bin/traceapp/core/TraceClient
+Main-Class: TraceClient/bin/traceapp/core/TraceClient
 
