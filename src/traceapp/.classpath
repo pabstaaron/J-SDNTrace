@@ -21,8 +21,10 @@
 	<classpathentry kind="lib" path="openflowj-3.0.0-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="jpcap.jar">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/aaron/eclipseWorkspace/J-SDNTrace/src/traceapp"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/aaron/J-SDNTrace/J-SDNTrace/src/traceapp"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="slf4j-api-1.6.4.jar"/>
+	<classpathentry kind="lib" path="guava-13.0.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
