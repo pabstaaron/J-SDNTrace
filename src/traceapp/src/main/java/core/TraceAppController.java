@@ -195,10 +195,11 @@ public class TraceAppController {
 		TracePacket pkt = new TracePacket();
 		
 		try{
-			pkt.deserialize(data, 14, data[14]);
+			pkt.deserialize(data, 0, data[0]);
 			HandleTrace(pkt, dpid, ingress);
-		}catch(Exception e){
-			
+		}catch(PacketParsingException e){
+			System.err.println("ERROR: Trace packet failed to deserialize!");
+			e.printStackTrace();
 		}
 	}
 	
@@ -231,28 +232,6 @@ public class TraceAppController {
 		writeMapToFile();
 	}
 	
-	/**
-	 * Wrapper class for associating ports with mac addresses.
-	 */
-	public class PortMacPair{
-		private long mac;
-		private int port;
-		
-		public void setMac(long mac){
-			this.mac = mac;
-		}
-		
-		public void setPort(int port){
-			this.port = port;
-		}
-		
-		public long getMac(){
-			return mac;
-		}
-		
-		public int getPort(){
-			return port;
-		}
-	}
+	
 }
 
