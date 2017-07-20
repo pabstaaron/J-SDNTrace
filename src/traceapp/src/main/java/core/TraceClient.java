@@ -1,7 +1,10 @@
 package core;
 
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 
+import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 
@@ -12,10 +15,15 @@ import jpcap.packet.EthernetPacket;
 import jpcap.packet.Packet;
 import net.floodlightcontroller.packet.PacketParsingException;
 import net.floodlightcontroller.packet.TCP;
+import java.util.ArrayList;
 
 public class TraceClient {
 
 	private static final int TRACE_PORT = 6654;
+	
+	private static ArrayList<TracePacket> packets; 
+	private static HashMap<Byte, Long> latencies;
+	private static long startTime;
 	
 	/**
 	 * arg0 = destination mac address, TODO - Have mac address be inputed as a hex string and convert it to a long from there
@@ -27,11 +35,13 @@ public class TraceClient {
 	public static void main(String[] args){
 		
 		try {
-			long mac = Long.parseLong(args[0]);
+			packets = new ArrayList<TracePacket>();
+			latencies = new HashMap<Byte, Long>();
+			
+			MacAddress mac = MacAddress.of(args[0]);
 			
 			TracePacket toSend = new TracePacket();
-			toSend.setDestination(MacAddress.of(mac));
-			toSend.setProtocol(IpProtocol.TCP);		
+			toSend.setDestination(mac);
 			TCP tcp = new TCP();
 			tcp.setDestinationPort(TRACE_PORT);
 			tcp.setSourcePort(TRACE_PORT);
@@ -39,10 +49,13 @@ public class TraceClient {
 			toSend.setSource(MacAddress.of(ni.getHardwareAddress())); 
 			toSend.setMaxHops((byte)255);
 			toSend.setType(true);
+			toSend.setDpid(DatapathId.of(0));
+			
+			//System.out.println(toSend);
 			
 //			byte[] data = toSend.serialize();
 			
-			System.out.println(System.getProperty("java.library.path"));
+			//System.out.println(System.getProperty("java.library.path"));
 			
 			jpcap.NetworkInterface[] interfaces = JpcapCaptor.getDeviceList();
 		
@@ -66,11 +79,33 @@ public class TraceClient {
 			jpcap.packet.Packet jTrace = translateToPcap(toSend);
 			
 //			System.out.println(Arrays.toString(jTrace.data));
+			Date start = new Date();
+			startTime = start.getTime();
 			sender.sendPacket(jTrace);
 			System.out.println("Torpedoes away!");
 			
 			// Wait for reply
 			captor.processPacket(-1, new TraceReceiver());
+			
+//			Thread.sleep(timeout);
+//			
+//			System.out.println("Timeout reached.");
+//			System.out.println("Packet status: " + packets);
+//			System.out.println(packets.size());
+			TracePacket[] arr = new TracePacket[packets.size()];
+			int i = 0;
+			for(TracePacket tp : packets){
+				arr[i] = tp;
+				i++;
+			}
+			Arrays.sort(arr);
+			
+			for(TracePacket tp : arr){
+				System.out.println("Hop " + tp.getHop());
+				System.out.println("\tDPID: " + tp.getDpid());
+				System.out.println("\tWorst Case Latency: " + latencies.get(tp.getHop()) + "ms");
+				System.out.println();
+			}
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -113,7 +148,11 @@ public class TraceClient {
 				TracePacket response = new TracePacket();
 				try {
 					response.deserialize(p.data, 0, p.data.length);
-					System.out.println(response);
+					packets.add(response); // Collect the packet
+					
+					// perform latency calculation
+					long latency = response.getTimestamp().getTime() - startTime;
+					latencies.put(response.getHop(), latency);
 				} catch (PacketParsingException e) {
 					e.printStackTrace();
 				}

@@ -26,5 +26,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="slf4j-api-1.6.4.jar"/>
 	<classpathentry kind="lib" path="guava-13.0.1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

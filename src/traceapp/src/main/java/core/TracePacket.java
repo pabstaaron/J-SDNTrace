@@ -1,12 +1,18 @@
 package core;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
+import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.IPAddress;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
@@ -28,22 +34,30 @@ import core.Hop;
  * 
  * @author Aaron Pabst
  */
-public class TracePacket extends BasePacket{
+public class TracePacket extends BasePacket implements Comparable<TracePacket>{
 
-    private MacAddress destinationMAC; // 64 bits = 8 bytes
+    private MacAddress destinationMAC; //  64 bits = 8 bytes
     private MacAddress sourceMAC; // 64 bits = 8 bytes
-    private IpProtocol protocol; // 1 byte
-    private byte version;
-    private byte maxHops;
-    private List<Hop> hops;
+    private byte version; // The traceapp version the trace originated from. Presently not used.
+    private byte maxHops; // The maximum number of hops in a trace
+    private long probeId; // The unique identifier of this packet
+    
+    // Reply fields
+    private Date timestamp;
+//    private long dpid;
+    private byte hop; // The hop number
 
+    private SwitchInfo swInfo;
+    
+    private final int packSize = 37 + SwitchInfo.len; // The size, in bytes, of a TracePacket
+    
     /**
      * The ethernet type for trace packets
      */
     public static final int TRACE_REQUEST = 0x8220;
     
     /**
-     * Indicates whether the packet is a request a reply. True for request, false for reply.
+     * Indicates whether the packet is a request or a reply. True for request, false for reply.
      */
     private boolean request; 
 	
@@ -51,16 +65,31 @@ public class TracePacket extends BasePacket{
     	super();
     	version = 1;
     	request = true;
-    	hops = new ArrayList<Hop>();
+    	hop = 0;
+    	
+    	// Compute a probe id
+    	Random rand = new Random();
+    	probeId = rand.nextLong();
+    	
+    	timestamp = new Date();
+    	swInfo = new SwitchInfo();
     }
     
     // Define various setters and getters //
-    
-    public void appendHop(Hop hop){
-    	hops.add(hop);
+    public void setTimestamp(Date d){
+    	timestamp = d;
     }
+    
+    public void setHop(byte hop){
+    	this.hop = hop;
+    }
+    
     public void setDestination(MacAddress dstMac){
     	destinationMAC = dstMac;
+    }
+    
+    public void setSwInfo(SwitchInfo inf){
+    	swInfo = inf;
     }
     
     public void setSource(MacAddress srcMac){
@@ -75,8 +104,8 @@ public class TracePacket extends BasePacket{
     	this.request = request;
     }
     
-    public void setProtocol(IpProtocol p){
-    	protocol = p;
+    public Date getTimestamp(){
+    	return timestamp;
     }
     
     public MacAddress getDestination(){
@@ -95,16 +124,20 @@ public class TracePacket extends BasePacket{
     	return request;
     }
     
-    public List<Hop> getHops(){
-    	return hops;
-    }
-    
-    public IpProtocol getProtocol(){
-    	return protocol;
+    public byte getHop(){
+    	return hop;
     }
     
     public byte getVersion(){
     	return version;
+    }
+    
+   public SwitchInfo getSwInfo(){
+	   return swInfo;
+   }
+    
+    public long getProbeId(){
+    	return probeId;
     }
     
     /**
@@ -114,9 +147,7 @@ public class TracePacket extends BasePacket{
 	public byte[] serialize() {
 		
 		// Compute the length of the packet in bytes
-		int length = 21;
-		if(hops != null)
-			length += (hops.size() * 20);
+		int length = packSize;
 		
         byte[] data = new byte[length];
         ByteBuffer bb = ByteBuffer.wrap(data);
@@ -125,29 +156,18 @@ public class TracePacket extends BasePacket{
         bb.putLong(sourceMAC.getLong()); // 8 bytes
         bb.put(version); // 1 byte
         bb.put(maxHops); // 1 byte
+        bb.putLong(probeId); // 4 bytes
+        bb.put(hop);
+        bb.putLong(timestamp.getTime());
         
         if(request) // 1 byte
         	bb.put((byte)1);
         else
         	bb.put((byte)0);
-       
-        // Need to transmit the number of hop entries as well
-	    bb.put((byte)hops.size()); // 4 bytes
-	        
-	    for(Hop h : hops){
-	        bb.putLong(h.getDpid()); // 8 bytes
-	        
-	        if(h.getIngress() != null) // 4 bytes
-	        	bb.putInt(h.getIngress().getPortNumber());
-	        else
-	        	bb.putInt(0);
-	        
-	        if(h.getTimestamp() != null) // 8 bytes
-	        	bb.putLong(h.getTimestamp().getTime());
-	        else
-	        	bb.putLong(0);
-	    }
       
+        byte[] swinf = swInfo.serialize();
+		bb.put(swinf, 0, swinf.length);
+        
 		return data;
 	}
 
@@ -165,11 +185,18 @@ public class TracePacket extends BasePacket{
 		ByteBuffer bb = ByteBuffer.wrap(data, offset, length);
 		
 		int len = bb.get(); // Length is used elsewhere in the program. It's only stored in a variable here for debugging purposes.
+		
 		this.destinationMAC = MacAddress.of(bb.getLong());
 		this.sourceMAC = MacAddress.of(bb.getLong());
 		
 		this.version = bb.get();
 		this.maxHops = bb.get();
+		
+		this.probeId = bb.getLong();
+		
+		this.hop = bb.get();
+		
+		this.timestamp = new Date(bb.getLong());
 		
 		byte req = bb.get();
 		if(req == (byte)1)
@@ -177,18 +204,7 @@ public class TracePacket extends BasePacket{
 		else
 			this.request = false;
 		
-		byte hopLength = bb.get();
-		
-		for(int i = 0; i < hopLength; i++){
-			long dpid = bb.getLong();
-			int portNum = bb.getInt();
-			long time = bb.getLong();
-			
-			Hop h = new Hop(dpid);
-			h.setTimestamp(new Date(time));
-			h.setIngress(OFPort.of(portNum));
-			hops.add(h);
-		}
+		this.swInfo = new SwitchInfo().deserialize(data, 37, SwitchInfo.len);
 		
 		return this;
 	}
@@ -204,18 +220,14 @@ public class TracePacket extends BasePacket{
 			return false;
 		else if(!sourceMAC.equals(p2.getSource()))
 			return false;
-		else if(!protocol.equals(p2.getProtocol()))
-			return false;
 		else if(version != p2.getVersion())
 			return false;
 		else if(maxHops != p2.getMaxHops())
 			return false;
-		List<Hop> hops1 = p2.getHops();
-		int i = 0;
-		for(Hop h : hops){
-			if(h.dpid != hops1.get(i).dpid)
-				return false;
-		}
+		else if(probeId != p2.getProbeId())
+			return false;
+		else if(hop != p2.getHop())
+			return false;
 		return true;
 	}
 
@@ -238,21 +250,26 @@ public class TracePacket extends BasePacket{
 	
 	@Override
 	public String toString(){
-//		String ret = "Destination: " + destinationMAC.toString();
-//		ret += "\n Source: " + sourceMAC.toString();
-//		ret += "\nSwitch ID: ";
-		String ret = "";
-		
-		if(hops != null)
-			for(Hop h : hops){
-				ret += h.toString() + "\n"; 
-			}
-		
+		String ret = "Source: " + sourceMAC.toString() +
+				"\nDestingation: " + destinationMAC.toString() +
+				"\nprobeId: " + probeId +
+				"\nHop: " + Byte.toString(hop) +
+				"\nRequest: " + Boolean.toString(request);
 		return ret;
 	}
 
 	public boolean isRequest() {
 		return request;
+	}
+
+	@Override
+	public int compareTo(TracePacket o) {
+		if(this.hop < o.hop)
+			return -1;
+		else if(this.hop == o.hop)
+			return 0;
+		else
+			return 1;
 	}
 
 }

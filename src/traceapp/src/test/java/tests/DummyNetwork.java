@@ -1,15 +1,13 @@
-package traceapp.tests;
+package tests;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import core.INetwork;
+import core.TraceAppController;
 import net.floodlightcontroller.packet.IPacket;
-import traceapp.core.INetwork;
-import traceapp.core.Packet;
-import traceapp.core.TraceAppController;
-import traceapp.core.TracePacket;
 
 /**
  * Implements a mock network for testing purposes.

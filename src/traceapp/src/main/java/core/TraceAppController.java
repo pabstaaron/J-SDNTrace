@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.projectfloodlight.openflow.protocol.match.Match;
+import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
@@ -35,9 +37,12 @@ public class TraceAppController {
 	private static final int TRACE_PACKET = 0x8220;
 	
 	// Used for keeping track of what mac address belongs to what port
-	// keys on protocol (tcp/upd), DPID, and MAC with a port number for a value
-	private HashMap<String, HashMap<Long, HashMap<Long, Integer>>> netMap;
+	// keys on DPID and MAC with a port number for a value
+	private HashMap<Long, HashMap<Long, Integer>> netMap;
 	
+	// Keeps a record of the current hop number for a probe
+	// Maps a probe id to a hop count
+	private HashMap<Long, Byte> hopRec;
 	
 	/**
 	 * Starts up a new instance of TraceApp to control the specified INetwork.
@@ -47,7 +52,9 @@ public class TraceAppController {
 	public TraceAppController(INetwork network){
 		this.network = network;
 		
-		netMap = new HashMap<String, HashMap<Long, HashMap<Long, Integer>>>();
+		netMap = new HashMap<Long, HashMap<Long, Integer>>();
+		
+		hopRec = new HashMap<Long, Byte>(); 
 	}
 	
 	/**
@@ -55,11 +62,12 @@ public class TraceAppController {
 	 */
 	private void writeMapToFile(){
 		String s = "--TraceApp Map Info--\n";
-		HashMap<Long, HashMap<Long, Integer>> map = netMap.get("tcp");
-		for(Long id : map.keySet()){
+		//HashMap<Long, HashMap<Long, Integer>> map = netMap.get("tcp");
+		
+		for(Long id : netMap.keySet()){
 			s += "Switch: " + Long.toString(id) + "\n";
-			for(Long mac : map.get(id).keySet()){
-				s+="\t" + Long.toString(mac) + " : " + Integer.toString(map.get(id).get(mac)) + "\n";
+			for(Long mac : netMap.get(id).keySet()){
+				s+="\t" + Long.toString(mac) + " : " + Integer.toString(netMap.get(id).get(mac)) + "\n";
 			}
 		}
 		
@@ -86,20 +94,10 @@ public class TraceAppController {
 			portMap.put(p.getMac(), p.getPort());
 		}
 		if(netMap.size() == 0){
-			HashMap<Long, HashMap<Long, Integer>> m1 = new HashMap<Long, HashMap<Long, Integer>>();
-			m1.put(dpid, portMap);
-			netMap.put("tcp", m1);
-			
-			HashMap<Long, HashMap<Long, Integer>> m2 = new HashMap<Long, HashMap<Long, Integer>>();
-			m2.put(dpid, portMap);
-			netMap.put("udp", m2);
+			netMap.put(dpid, portMap);
 		}
 		else{
-			HashMap<Long, HashMap<Long, Integer>> m1 = netMap.get("tcp");
-			m1.put(dpid, portMap);
-			
-			HashMap<Long, HashMap<Long, Integer>> m2 = netMap.get("udp");
-			m2.put(dpid, portMap);
+			netMap.put(dpid, portMap);
 		}
 		
 		// Push the Trace flow to the new switch
@@ -109,13 +107,12 @@ public class TraceAppController {
 	
 	/**
 	 * Control the trace process according to the SDNTrace specification.
+	 * @param swAddr 
 	 */
-	private void HandleTrace(TracePacket p, long dpid, OFPort ingress){
+	private void HandleTrace(TracePacket p, SwitchInfo info){
 		System.out.println("TraceApp received a trace request...");
 		
-		HashMap<Long, HashMap<Long, Integer>> switches = netMap.get("tcp");
-		
-		HashMap<Long, Integer> sw = switches.get(dpid);
+		HashMap<Long, Integer> sw = netMap.get(info.getDpid());
 	
 		/**
 		 * Try to find the switch and port to send the reply out of. If the switch and port are not present in the map,
@@ -123,20 +120,15 @@ public class TraceAppController {
 		 * 
 		 * FIXME - This is a thousand miles short of ideal/robust...
 		 */
-		long returnSw = searchForSwitch(p.getSource().getLong(), switches);
+		long returnSw = searchForSwitch(p.getSource().getLong(), netMap);
 		
-		
-		
-		Hop h = new Hop(dpid);
-		h.setTimestamp(new Date());
-		h.setIngress(ingress);
 		try{
-			int returnPort = switches.get(returnSw).get(p.getSource());
+			int returnPort = netMap.get(returnSw).get(p.getSource());
 			System.out.println("Sending packet out sw: " + Long.toString(returnSw) + " on port: " + Integer.toString(returnPort));
-			sendReply(h, returnSw, p, OFPort.of(returnPort));
+			sendReply(returnSw, p, OFPort.of(returnPort), info);
 		}catch(NullPointerException e){
-			System.out.println("Sending packet out all ports on sw: " + Long.toString(dpid));
-			sendReply(h, dpid, p, OFPort.FLOOD);
+			System.out.println("Sending packet out all ports on sw: " + info.getDpid());
+			sendReply(info.getDpid().getLong(), p, OFPort.FLOOD, info);
 		}
 	}
 	
@@ -149,16 +141,22 @@ public class TraceAppController {
 	 * @param request
 	 * @param p
 	 */
-	private void sendReply(Hop h, long dpid, TracePacket request, OFPort p) {
+	private void sendReply(long dpid, TracePacket request, OFPort p, SwitchInfo info) {
 		TracePacket reply = new TracePacket();
 		reply.setDestination(request.getSource());
 		reply.setSource(request.getDestination());
 		reply.setMaxHops((byte)255);
-		reply.setProtocol(IpProtocol.TCP); // The protocol field is still a part of the trace packet, but it's meaningless at this point.
-		reply.setType(false); // Toggle packet type to request
-		reply.appendHop(h); 
+		reply.setType(false); // Toggle packet type to reply
+		reply.setTimestamp(new Date());
+		reply.setSwInfo(info);
 		
-		network.SendTracePacket(dpid, reply, p);
+		if(!hopRec.containsKey(request.getProbeId())){ // If we haven't seen this probeId before
+			hopRec.put(request.getProbeId(), (byte)0);
+		}
+		reply.setHop(hopRec.get(request.getProbeId()));
+		hopRec.put(request.getProbeId(), (byte)(hopRec.get(request.getProbeId()) + 1)); // Increment the hop counter
+		
+		network.SendTracePacket(dpid, reply, p); // Blast out the reply
 	}
 
 	/**
@@ -181,14 +179,14 @@ public class TraceAppController {
 	}
 	
 	/**
-	 * Used to notify this object of a packet in. 
+	 * Used to notify this TraceAppController of a packet in. 
 	 * TODO - Should be called on ALL packetIn messages.
 	 * 
 	 * @param pkt - A network packet as defined in traceapp.core
 	 * @param dpid - The DPID of the switch the message was generated on
 	 * @param ingress - The port the packet came in on. 
 	 */
-	public void PacketIn(byte[] data, long dpid, OFPort ingress){
+	public void PacketIn(byte[] data, SwitchInfo info){
 //		System.out.println("TraceApp received a packet: " + pkt);
 //		HandleTrace(pkt, dpid, ingress);
 		
@@ -196,7 +194,7 @@ public class TraceAppController {
 		
 		try{
 			pkt.deserialize(data, 0, data[0]);
-			HandleTrace(pkt, dpid, ingress);
+			HandleTrace(pkt, info);
 		}catch(PacketParsingException e){
 			System.err.println("ERROR: Trace packet failed to deserialize!");
 			e.printStackTrace();
@@ -209,19 +207,18 @@ public class TraceAppController {
 	 * Pass -1 for mac address to signal that there is no longer an address on this port
 	 */
 	public void OnPortStatusChange(long dpid, int portNum, long mac){
-		HashMap<Long, HashMap<Long, Integer>> tcpMap = netMap.get("tcp");
 		
 		// Determine whether or not the port is already registered on the switch
 			// If yes, update the mac address and return
 			// If no, add a new entry with the port and the mac
 		
-		if(!tcpMap.containsKey(dpid)){
+		if(!netMap.containsKey(dpid)){
 			HashMap<Long, Integer> newMap = new HashMap<Long, Integer>();
 			newMap.put(mac, portNum);
-			tcpMap.put(dpid, newMap);
+			netMap.put(dpid, newMap);
 		}
 		else{
-			HashMap<Long, Integer> map = tcpMap.get(dpid);
+			HashMap<Long, Integer> map = netMap.get(dpid);
 			if(!map.containsKey(mac))
 				map.put(mac, portNum);
 			else{
