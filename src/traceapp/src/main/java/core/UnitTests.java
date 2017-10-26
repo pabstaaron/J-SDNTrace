@@ -29,7 +29,9 @@ public class UnitTests {
 		inf.setIngress(OFPort.of(1));
 		inf.setIpAddr(new InetSocketAddress(1));
 		inf.setLinkLatency(U64.of(1));
+		inf.setContId(" ");
 		
+		tp.setSwInfo(inf);
 		
 		TracePacket tp2 = new TracePacket();
 		try {

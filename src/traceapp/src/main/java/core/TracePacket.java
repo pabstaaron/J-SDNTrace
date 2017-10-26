@@ -147,7 +147,7 @@ public class TracePacket extends BasePacket implements Comparable<TracePacket>{
 	public byte[] serialize() {
 		
 		// Compute the length of the packet in bytes
-		int length = packSize;
+		int length = packSize + swInfo.getContId().length() + swInfo.getContId().length();
 		
         byte[] data = new byte[length];
         ByteBuffer bb = ByteBuffer.wrap(data);
@@ -204,7 +204,7 @@ public class TracePacket extends BasePacket implements Comparable<TracePacket>{
 		else
 			this.request = false;
 		
-		this.swInfo = new SwitchInfo().deserialize(data, 37, SwitchInfo.len);
+		this.swInfo = new SwitchInfo().deserialize(data, 21, SwitchInfo.len);
 		
 		return this;
 	}
@@ -228,6 +228,8 @@ public class TracePacket extends BasePacket implements Comparable<TracePacket>{
 			return false;
 		else if(hop != p2.getHop())
 			return false;
+		else if(!this.swInfo.equals(p2))
+			return false;
 		return true;
 	}
 
@@ -250,11 +252,15 @@ public class TracePacket extends BasePacket implements Comparable<TracePacket>{
 	
 	@Override
 	public String toString(){
-		String ret = "Source: " + sourceMAC.toString() +
+		String ret =
+				"Hop: " + hop +
+				"\nSource: " + sourceMAC.toString() +
 				"\nDestingation: " + destinationMAC.toString() +
 				"\nprobeId: " + probeId +
 				"\nHop: " + Byte.toString(hop) +
-				"\nRequest: " + Boolean.toString(request);
+				"\nRequest: " + Boolean.toString(request) +
+				"\nTimestamp: " + timestamp.getTime() +
+				"\nSwitch Link Latency: " + swInfo.getLatency();
 		return ret;
 	}
 
