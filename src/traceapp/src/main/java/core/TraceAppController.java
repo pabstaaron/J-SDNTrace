@@ -130,6 +130,7 @@ public class TraceAppController {
 			System.out.println("Sending packet out all ports on sw: " + info.getDpid());
 			sendReply(info.getDpid().getLong(), p, OFPort.FLOOD, info);
 		}
+		
 	}
 	
 	/**

@@ -1,126 +1,18 @@
 Debug Info for trace packet:
 
 Hop: 0
-Source: 00:00:00:00:00:01
-Destingation: 00:00:00:00:00:02
-probeId: -7044312313640061142
+Source: 38:d5:47:b7:7d:dd
+Destingation: 45:54:54:54:57:24
+probeId: 325622134518225552
 Hop: 0
 Request: true
-Timestamp: 1508876984151
+Timestamp: 1510091467254
 Switch Link Latency: 0x0000000000000000
 
-Sending probe on interface EN10MB with timeout 1000
+Sending probe on interface EN10MB with timeout 10000
 
-Trace began at 1508876984586
+Trace began at 1510091470323
 
-Reply Received:
-Hop: 0
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 2377631816597607697
-Hop: 0
-Request: false
-Timestamp: 1508876984587
-Switch Link Latency: 0x13a10b0000000000
-Reply Received:
-Hop: 1
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: -964322144865867051
-Hop: 1
-Request: false
-Timestamp: 1508876984590
-Switch Link Latency: 0x13a10e0000000000
-Reply Received:
-Hop: 2
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 6327308532176798785
-Hop: 2
-Request: false
-Timestamp: 1508876984592
-Switch Link Latency: 0x13a1100000000000
-Reply Received:
-Hop: 3
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: -1935860853710422192
-Hop: 3
-Request: false
-Timestamp: 1508876984593
-Switch Link Latency: 0x13a1110000000000
-Reply Received:
-Hop: 2
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 6327308532176798785
-Hop: 2
-Request: false
-Timestamp: 1508876984592
-Switch Link Latency: 0x13a1100000000000
-Reply Received:
-Hop: 3
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: -1935860853710422192
-Hop: 3
-Request: false
-Timestamp: 1508876984593
-Switch Link Latency: 0x13a1110000000000
-Reply Received:
-Hop: 4
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 8317439331497467089
-Hop: 4
-Request: false
-Timestamp: 1508876984594
-Switch Link Latency: 0x13a1120000000000
 
 Trimmed and sorted reply list:
-
-Hop: 0
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 2377631816597607697
-Hop: 0
-Request: false
-Timestamp: 1508876984587
-Switch Link Latency: 0x13a10b0000000000
-
-Hop: 1
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: -964322144865867051
-Hop: 1
-Request: false
-Timestamp: 1508876984590
-Switch Link Latency: 0x13a10e0000000000
-
-Hop: 2
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 6327308532176798785
-Hop: 2
-Request: false
-Timestamp: 1508876984592
-Switch Link Latency: 0x13a1100000000000
-
-Hop: 3
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: -1935860853710422192
-Hop: 3
-Request: false
-Timestamp: 1508876984593
-Switch Link Latency: 0x13a1110000000000
-
-Hop: 4
-Source: 00:00:00:00:00:02
-Destingation: 00:00:00:00:00:01
-probeId: 8317439331497467089
-Hop: 4
-Request: false
-Timestamp: 1508876984594
-Switch Link Latency: 0x13a1120000000000
 
